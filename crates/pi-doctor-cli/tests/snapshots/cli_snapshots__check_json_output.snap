@@ -1,6 +1,7 @@
 ---
 source: crates/pi-doctor-cli/tests/cli_snapshots.rs
-expression: "binary_output(&[\"check\", \"--json\"])"
+assertion_line: 19
+expression: output
 ---
 {
   "metadata": {
@@ -12,10 +13,10 @@ expression: "binary_output(&[\"check\", \"--json\"])"
     "board_model": null,
     "board_revision": null,
     "architecture": "x86_64",
-    "distro_name": null,
-    "distro_version": null,
-    "distro_codename": null,
-    "kernel_release": null,
+    "distro_name": "Debian GNU/Linux",
+    "distro_version": "12",
+    "distro_codename": "bookworm",
+    "kernel_release": "6.1.0-27-amd64",
     "is_raspberry_pi": false
   },
   "config": {

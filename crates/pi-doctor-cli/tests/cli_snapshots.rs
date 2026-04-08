@@ -1,4 +1,6 @@
 use insta::assert_snapshot;
+use pi_doctor_core::{CommandOutput, ProbeContext};
+use std::path::PathBuf;
 use std::process::Command;
 
 #[test]
@@ -8,10 +10,13 @@ fn help_output_snapshot() {
 
 #[test]
 fn check_json_snapshot() {
-    assert_snapshot!(
-        "check_json_output",
-        binary_output(&["--json", "check"], &[1])
-    );
+    let output = pi_doctor::output::render_report(
+        &pi_doctor::build_check_report(&fixture_ctx("non-pi-debian")),
+        pi_doctor::output::RenderSettings::test_json(),
+    )
+    .expect("fixture-backed json render should succeed");
+
+    assert_snapshot!("check_json_output", output);
 }
 
 #[test]
@@ -45,4 +50,44 @@ fn binary_output(args: &[&str], allowed_exit_codes: &[i32]) -> String {
 
 fn normalize(output: String) -> String {
     output.replace("pi-doctor.exe", "pi-doctor")
+}
+
+fn fixture_ctx(name: &str) -> ProbeContext {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("fixtures")
+        .join("milestone1")
+        .join(name);
+
+    ProbeContext::with_root(root)
+        .with_command_output("vcgencmd", &["get_throttled"], CommandOutput::Missing)
+        .with_command_output("rpicam-hello", &["--help"], CommandOutput::Missing)
+        .with_command_output("libcamera-hello", &["--help"], CommandOutput::Missing)
+        .with_command_output("python3", &["--version"], CommandOutput::Missing)
+        .with_command_output(
+            "python3",
+            &["-c", "import sys; print(sys.executable)"],
+            CommandOutput::Missing,
+        )
+        .with_command_output(
+            "python3",
+            &["-c", "import sys; print(int(sys.prefix != sys.base_prefix))"],
+            CommandOutput::Missing,
+        )
+        .with_command_output(
+            "python3",
+            &["-c", "import sysconfig; print(sysconfig.get_path('stdlib'))"],
+            CommandOutput::Missing,
+        )
+        .with_command_output(
+            "dpkg-query",
+            &["-W", "-f=${Status}", "python3-picamera2"],
+            CommandOutput::Missing,
+        )
+        .with_command_output(
+            "dpkg-query",
+            &["-W", "-f=${Status}", "python3-gpiozero"],
+            CommandOutput::Missing,
+        )
 }
