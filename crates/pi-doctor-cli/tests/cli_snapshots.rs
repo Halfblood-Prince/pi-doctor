@@ -72,12 +72,18 @@ fn fixture_ctx(name: &str) -> ProbeContext {
         )
         .with_command_output(
             "python3",
-            &["-c", "import sys; print(int(sys.prefix != sys.base_prefix))"],
+            &[
+                "-c",
+                "import sys; print(int(sys.prefix != sys.base_prefix))",
+            ],
             CommandOutput::Missing,
         )
         .with_command_output(
             "python3",
-            &["-c", "import sysconfig; print(sysconfig.get_path('stdlib'))"],
+            &[
+                "-c",
+                "import sysconfig; print(sysconfig.get_path('stdlib'))",
+            ],
             CommandOutput::Missing,
         )
         .with_command_output(
