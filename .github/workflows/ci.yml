@@ -82,4 +82,4 @@ jobs:
           "$PWD/.tmp/bin/pi-doctor" --version
 
       - name: README install section exists
-        run: rg -n "^## Install|install.sh|Homebrew|Debian" README.md
+        run: grep -nE "^## Install|install.sh|Homebrew|Debian" README.md
