@@ -1,0 +1,4 @@
+# Bookworm Lite image without camera overlays
+[all]
+dtparam=audio=on
+dtoverlay=vc4-kms-v3d

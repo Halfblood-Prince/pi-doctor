@@ -1,0 +1,19 @@
+---
+source: crates/pi-doctor-cli/tests/milestone6_python.rs
+expression: "pi_doctor::explain::python::render(&ctx)"
+---
+pi-doctor explain python
+Python environment analysis
+  version: Python 3.12.1
+  executable: /home/pi/project/.venv/bin/python3
+  virtual environment: active
+  externally managed: no
+
+Guidance
+  No immediate Python packaging warnings were detected.
+
+Exact next commands
+  Install pip-only packages inside the active venv:
+      python -m pip install <package>
+  Prefer apt when Raspberry Pi OS already ships the package:
+      sudo apt install python3-picamera2 python3-gpiozero

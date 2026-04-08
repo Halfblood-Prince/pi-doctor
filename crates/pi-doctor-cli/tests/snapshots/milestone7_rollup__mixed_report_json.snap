@@ -1,0 +1,82 @@
+---
+source: crates/pi-doctor-cli/tests/milestone7_rollup.rs
+expression: json
+---
+{
+  "metadata": {
+    "command": "check"
+  },
+  "schema_version": "1.0.0",
+  "overall_status": "degraded",
+  "system": null,
+  "config": null,
+  "camera": null,
+  "python": null,
+  "groups": [
+    {
+      "domain": "power",
+      "findings": [
+        {
+          "id": "throttling.undervoltage_now",
+          "severity": "warning",
+          "title": "Under-voltage is active now",
+          "summary": "Firmware telemetry reports an active under-voltage condition.",
+          "evidence": [],
+          "suggested_actions": []
+        }
+      ]
+    },
+    {
+      "domain": "thermal",
+      "findings": [
+        {
+          "id": "thermal.near_throttle",
+          "severity": "warning",
+          "title": "CPU temperature is near throttling range",
+          "summary": "CPU temperature is 78.2 C, which is close to the Raspberry Pi throttling threshold.",
+          "evidence": [],
+          "suggested_actions": []
+        }
+      ]
+    },
+    {
+      "domain": "config",
+      "findings": [
+        {
+          "id": "config_txt.stale_legacy_path",
+          "severity": "warning",
+          "title": "Legacy /boot/config.txt is present alongside the modern config path",
+          "summary": "This system appears to use /boot/firmware/config.txt, but /boot/config.txt also exists.",
+          "evidence": [],
+          "suggested_actions": []
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "throttling.undervoltage_now",
+      "severity": "warning",
+      "title": "Under-voltage is active now",
+      "summary": "Firmware telemetry reports an active under-voltage condition.",
+      "evidence": [],
+      "suggested_actions": []
+    },
+    {
+      "id": "thermal.near_throttle",
+      "severity": "warning",
+      "title": "CPU temperature is near throttling range",
+      "summary": "CPU temperature is 78.2 C, which is close to the Raspberry Pi throttling threshold.",
+      "evidence": [],
+      "suggested_actions": []
+    },
+    {
+      "id": "config_txt.stale_legacy_path",
+      "severity": "warning",
+      "title": "Legacy /boot/config.txt is present alongside the modern config path",
+      "summary": "This system appears to use /boot/firmware/config.txt, but /boot/config.txt also exists.",
+      "evidence": [],
+      "suggested_actions": []
+    }
+  ]
+}

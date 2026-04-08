@@ -1,0 +1,4 @@
+Available cameras
+-----------------
+0 : imx708_wide [4608x2592 10-bit RGGB]
+    /base/axi/pcie@120000/rp1/i2c@88000/imx708@1a

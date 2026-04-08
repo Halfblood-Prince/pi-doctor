@@ -1,0 +1,3 @@
+2: a0 pd | hi // GPIO2 = SDA1
+3: a0 pd | hi // GPIO3 = SCL1
+4: ip pn | lo // GPIO4 = INPUT

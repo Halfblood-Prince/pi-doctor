@@ -1,0 +1,3 @@
+[all]
+dtoverlay=spi0-1cs
+dtoverlay=vc4-kms-v3d

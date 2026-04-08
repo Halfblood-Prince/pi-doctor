@@ -1,0 +1,23 @@
+[workspace]
+members = [
+    "crates/pi-doctor-bundle",
+    "crates/pi-doctor-cli",
+    "crates/pi-doctor-core",
+    "crates/pi-doctor-probes",
+    "crates/pi-doctor-report",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+version = "0.1.0"
+repository = "https://github.com/example/pi-doctor"
+homepage = "https://github.com/example/pi-doctor"
+description = "Human-first Raspberry Pi diagnostics"
+
+[workspace.dependencies]
+clap = { version = "4.5.39", features = ["derive"] }
+clap_complete = "4.5.54"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"

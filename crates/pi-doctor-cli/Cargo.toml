@@ -1,0 +1,20 @@
+[package]
+name = "pi-doctor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description.workspace = true
+
+[dependencies]
+clap.workspace = true
+clap_complete.workspace = true
+pi-doctor-bundle = { path = "../pi-doctor-bundle" }
+pi-doctor-core = { path = "../pi-doctor-core" }
+pi-doctor-probes = { path = "../pi-doctor-probes" }
+pi-doctor-report = { path = "../pi-doctor-report" }
+serde_json.workspace = true
+
+[dev-dependencies]
+insta = { version = "1.43.2", features = ["glob"] }

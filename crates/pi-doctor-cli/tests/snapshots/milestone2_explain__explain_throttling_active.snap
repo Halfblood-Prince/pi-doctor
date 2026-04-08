@@ -1,0 +1,20 @@
+---
+source: crates/pi-doctor-cli/tests/milestone2_explain.rs
+expression: "pi_doctor::explain::throttling::render(&ctx)"
+---
+pi-doctor explain throttling
+Firmware and thermal analysis
+  throttled bitmask: 0x50005
+  CPU temperature: 78.2 C (near throttle)
+
+Assessment
+  Under-voltage is active now.
+  Under-voltage occurred historically.
+  Throttling is active.
+  Throttling occurred historically.
+  Temperature classification: near throttle.
+
+Next steps
+  Check the power supply rating, USB-C or micro-USB cable quality, and attached peripheral load.
+  Improve cooling and airflow, then compare `vcgencmd get_throttled` before and after temperatures drop.
+  Watch `/sys/class/thermal/thermal_zone0/temp` during sustained load to confirm the heat trend.

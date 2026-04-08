@@ -1,0 +1,12 @@
+---
+source: crates/pi-doctor-cli/tests/milestone2_explain.rs
+expression: "pi_doctor::explain::throttling::render(&ctx)"
+---
+pi-doctor explain throttling
+Firmware and thermal analysis
+  CPU temperature: unavailable
+
+Assessment
+  `vcgencmd` is missing, so firmware throttle telemetry could not be read.
+  Why this matters: under-voltage and firmware throttling history live in Raspberry Pi firmware telemetry.
+  What to run next: install Raspberry Pi firmware utilities or run this on Raspberry Pi OS, then retry.

@@ -1,0 +1,19 @@
+---
+source: crates/pi-doctor-cli/tests/milestone4_gpio.rs
+expression: "pi_doctor::doctor::gpio::render(&ctx)"
+---
+pi-doctor doctor gpio
+GPIO stack recommendation
+  gpiochip devices: gpiochip0, gpiochip4
+  pinctrl: present
+  libgpiod tools: gpioinfo, gpiodetect
+  raspi-gpio: present (deprecated)
+
+Recommended path
+  Use pinctrl for Raspberry Pi-specific hardware-state inspection and alternate-function visibility.
+  Use libgpiod tools for generic Linux GPIO line ownership and userspace line work.
+
+Potential conflicts
+  Overlay `spi0-1cs` likely enables a bus or peripheral already.
+  GPIO3 currently appears owned by alternate function SDA1.
+  GPIO18 currently appears owned by alternate function PWM0_CHAN2.

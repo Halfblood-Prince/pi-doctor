@@ -1,0 +1,27 @@
+---
+source: crates/pi-doctor-cli/tests/milestone6_python.rs
+expression: "pi_doctor::explain::python::render(&ctx)"
+---
+pi-doctor explain python
+Python environment analysis
+  version: Python 3.11.2
+  executable: /usr/bin/python3
+  virtual environment: not active
+  externally managed: yes
+  detected distro packages: python3-picamera2
+
+Guidance
+  System Python is externally managed.
+  This Python installation is marked EXTERNALLY-MANAGED, which means pip installs should generally happen inside a virtual environment.
+  No active virtual environment detected.
+  Python appears to be running outside a virtual environment.
+  Picamera2 is installed from the distro package.
+  The `python3-picamera2` package is present, which is usually the preferred Raspberry Pi OS path.
+
+Exact next commands
+  Create and use a virtual environment for pip-managed packages:
+      python3 -m venv .venv
+      . .venv/bin/activate
+      python -m pip install --upgrade pip
+  Prefer apt when Raspberry Pi OS already ships the package:
+      sudo apt install python3-picamera2 python3-gpiozero

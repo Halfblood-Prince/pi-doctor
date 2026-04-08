@@ -1,0 +1,3 @@
+ 18 : a3 pd | hi // GPIO18 = PWM0_CHAN2
+ 19 : a4 pd | hi // GPIO19 = SPI0_MISO
+ 20 : a4 pd | lo // GPIO20 = SPI0_MOSI

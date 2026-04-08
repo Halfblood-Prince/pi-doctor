@@ -1,0 +1,12 @@
+---
+source: crates/pi-doctor-cli/tests/milestone4_gpio.rs
+expression: "pi_doctor::doctor::gpio::render(&ctx)"
+---
+pi-doctor doctor gpio
+GPIO stack recommendation
+  gpiochip devices: none detected
+  pinctrl: missing
+  libgpiod tools: missing
+
+Recommended path
+  GPIO inspection tooling is sparse here; install pinctrl or libgpiod tools before deep GPIO debugging.

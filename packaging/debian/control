@@ -1,0 +1,14 @@
+Source: pi-doctor
+Section: utils
+Priority: optional
+Maintainer: pi-doctor contributors <maintainers@example.com>
+Build-Depends: debhelper-compat (= 13), cargo, rustc
+Standards-Version: 4.7.0
+Homepage: https://github.com/example/pi-doctor
+Rules-Requires-Root: no
+
+Package: pi-doctor
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Human-first Raspberry Pi diagnostics
+ pi-doctor is a read-only diagnostic CLI for Raspberry Pi systems.
