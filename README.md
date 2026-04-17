@@ -52,6 +52,13 @@ pi-doctor doctor gpio
 pi-doctor support-bundle
 ```
 
+## CLI Contract
+
+Automation should prefer `pi-doctor check --json`. The public CLI guarantees are
+documented in [docs/cli-contract.md](docs/cli-contract.md), with supporting
+details in [docs/exit-codes.md](docs/exit-codes.md) and
+[docs/json-schema.md](docs/json-schema.md).
+
 ## Release artifacts
 
 Tagged releases publish:

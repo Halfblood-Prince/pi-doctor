@@ -332,6 +332,20 @@ fn exit_code_for_status(status: OverallStatus) -> u8 {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::exit_code_for_status;
+    use pi_doctor_core::OverallStatus;
+
+    #[test]
+    fn exit_code_contract_matches_status_levels() {
+        assert_eq!(exit_code_for_status(OverallStatus::Healthy), 0);
+        assert_eq!(exit_code_for_status(OverallStatus::Warning), 1);
+        assert_eq!(exit_code_for_status(OverallStatus::Degraded), 2);
+        assert_eq!(exit_code_for_status(OverallStatus::Critical), 3);
+    }
+}
+
 fn command_output_text(ctx: &ProbeContext, program: &str, args: &[&str]) -> String {
     match ctx.run_command(program, args) {
         pi_doctor_core::CommandOutput::Success(output) => format!("{output}\n"),

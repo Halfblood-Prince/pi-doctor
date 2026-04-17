@@ -1,5 +1,8 @@
 # JSON Schema
 
+See also [CLI Contract](cli-contract.md) for which output formats are considered
+stable.
+
 `pi-doctor check --json` currently emits schema version `1.0.0`.
 
 Top-level fields:
@@ -30,3 +33,9 @@ Overall status rules:
 - `warning`: warnings present without an explicitly active degraded condition
 - `degraded`: active-impact findings such as currently active throttling conditions
 - `critical`: reserved for future critical findings
+
+Stability notes:
+
+- Automation should gate behavior on `schema_version`.
+- Unknown fields should be ignored.
+- Human-readable CLI output is not covered by this schema contract.
