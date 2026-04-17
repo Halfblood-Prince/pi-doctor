@@ -1,3 +1,7 @@
+mod error;
+
+pub use error::BundleError;
+
 use pi_doctor_core::Report;
 use std::collections::BTreeMap;
 use std::fs;
@@ -19,9 +23,12 @@ pub fn write_bundle(
     output_root: impl AsRef<Path>,
     bundle_name: &str,
     input: &BundleInput,
-) -> Result<BundleResult, Box<dyn std::error::Error>> {
+) -> Result<BundleResult, BundleError> {
     let bundle_dir = output_root.as_ref().join(bundle_name);
-    fs::create_dir_all(&bundle_dir)?;
+    fs::create_dir_all(&bundle_dir).map_err(|source| BundleError::CreateDir {
+        path: bundle_dir.clone(),
+        source,
+    })?;
 
     let mut files = Vec::new();
     let mut contents = BTreeMap::new();
@@ -50,9 +57,15 @@ pub fn write_bundle(
     for (relative, content) in contents {
         let path = bundle_dir.join(&relative);
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent).map_err(|source| BundleError::CreateDir {
+                path: parent.to_path_buf(),
+                source,
+            })?;
         }
-        fs::write(&path, content)?;
+        fs::write(&path, content).map_err(|source| BundleError::WriteFile {
+            path: path.clone(),
+            source,
+        })?;
         files.push(relative);
     }
 

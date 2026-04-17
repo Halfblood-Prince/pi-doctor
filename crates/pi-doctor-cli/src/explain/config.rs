@@ -2,7 +2,7 @@ use pi_doctor_core::ProbeContext;
 use pi_doctor_probes::config_txt::{ConfigTxtProbe, summarize_entries_by_key};
 
 pub fn render(ctx: &ProbeContext) -> String {
-    let analysis = ConfigTxtProbe.collect(ctx);
+    let analysis = ConfigTxtProbe.collect(ctx).unwrap_or_default();
     let summary = analysis.summary;
     let mut lines = vec![
         "pi-doctor explain config".to_owned(),

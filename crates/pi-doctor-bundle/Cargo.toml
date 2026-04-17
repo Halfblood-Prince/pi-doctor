@@ -11,3 +11,4 @@ description.workspace = true
 pi-doctor-core = { path = "../pi-doctor-core" }
 pi-doctor-report = { path = "../pi-doctor-report" }
 serde_json.workspace = true
+thiserror.workspace = true

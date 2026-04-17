@@ -1,4 +1,4 @@
-use crate::config_txt::ConfigTxtProbe;
+use crate::{ProbeError, config_txt::ConfigTxtProbe};
 use pi_doctor_core::{CommandOutput, Finding, Probe, ProbeContext, ProbeResult, Severity};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -21,14 +21,14 @@ pub struct PinFunction {
 pub struct GpioProbe;
 
 impl GpioProbe {
-    pub fn collect(&self, ctx: &ProbeContext) -> GpioAnalysis {
+    pub fn collect(&self, ctx: &ProbeContext) -> Result<GpioAnalysis, ProbeError> {
         let pinctrl_output = ctx.run_command("pinctrl", &["--help"]);
         let raspi_gpio_output = ctx.run_command("raspi-gpio", &["help"]);
         let gpioinfo_output = ctx.run_command("gpioinfo", &["--help"]);
         let gpiodetect_output = ctx.run_command("gpiodetect", &["--help"]);
         let pinctrl_state = ctx.run_command("pinctrl", &[]);
 
-        GpioAnalysis {
+        Ok(GpioAnalysis {
             pinctrl_present: is_present(&pinctrl_output),
             raspi_gpio_present: is_present(&raspi_gpio_output),
             gpioinfo_present: is_present(&gpioinfo_output),
@@ -45,13 +45,16 @@ impl GpioProbe {
                 }
                 CommandOutput::Missing => Vec::new(),
             },
-        }
+        })
     }
 }
 
 impl Probe for GpioProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        let analysis = self.collect(ctx);
+        let analysis = match self.collect(ctx) {
+            Ok(analysis) => analysis,
+            Err(_) => GpioAnalysis::default(),
+        };
         let mut findings = Vec::new();
 
         if analysis.pinctrl_present {
@@ -157,7 +160,10 @@ fn is_present(output: &CommandOutput) -> bool {
 }
 
 fn config_overlay_hints(ctx: &ProbeContext) -> Vec<String> {
-    let analysis = ConfigTxtProbe.collect(ctx);
+    let analysis = match ConfigTxtProbe.collect(ctx) {
+        Ok(analysis) => analysis,
+        Err(_) => return Vec::new(),
+    };
     let mut hints = Vec::new();
 
     for entry in analysis.summary.entries {

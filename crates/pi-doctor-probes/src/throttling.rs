@@ -1,3 +1,5 @@
+use crate::ProbeError;
+use log::warn;
 use pi_doctor_core::{CommandOutput, Finding, Probe, ProbeContext, ProbeResult, Severity};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -18,35 +20,41 @@ pub struct ThrottlingDetails {
 pub struct ThrottlingProbe;
 
 impl ThrottlingProbe {
-    pub fn collect(&self, ctx: &ProbeContext) -> ThrottlingDetails {
+    pub fn collect(&self, ctx: &ProbeContext) -> Result<ThrottlingDetails, ProbeError> {
         match ctx.run_command("vcgencmd", &["get_throttled"]) {
             CommandOutput::Success(output) => match parse_throttled_output(&output) {
-                Ok(details) => ThrottlingDetails {
+                Ok(details) => Ok(ThrottlingDetails {
                     vcgencmd_available: true,
                     ..details
-                },
-                Err(error) => ThrottlingDetails {
-                    vcgencmd_available: true,
-                    error: Some(error),
-                    ..ThrottlingDetails::default()
-                },
+                }),
+                Err(error) => Err(error),
             },
-            CommandOutput::Missing => ThrottlingDetails {
+            CommandOutput::Missing => Ok(ThrottlingDetails {
                 vcgencmd_available: false,
                 ..ThrottlingDetails::default()
-            },
-            CommandOutput::Failure(error) => ThrottlingDetails {
-                vcgencmd_available: true,
-                error: Some(error),
-                ..ThrottlingDetails::default()
-            },
+            }),
+            CommandOutput::Failure(detail) => Err(ProbeError::CommandFailure {
+                program: "vcgencmd",
+                args: "get_throttled".to_owned(),
+                detail,
+            }),
         }
     }
 }
 
 impl Probe for ThrottlingProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        let details = self.collect(ctx);
+        let details = match self.collect(ctx) {
+            Ok(details) => details,
+            Err(error) => {
+                warn!("throttling probe fallback: {error}");
+                ThrottlingDetails {
+                    vcgencmd_available: true,
+                    error: Some(error.to_string()),
+                    ..ThrottlingDetails::default()
+                }
+            }
+        };
         let mut findings = Vec::new();
 
         if !details.vcgencmd_available {
@@ -120,16 +128,24 @@ impl Probe for ThrottlingProbe {
     }
 }
 
-pub fn parse_throttled_output(raw: &str) -> Result<ThrottlingDetails, String> {
+pub fn parse_throttled_output(raw: &str) -> Result<ThrottlingDetails, ProbeError> {
     let value = raw
         .trim()
         .strip_prefix("throttled=")
-        .ok_or_else(|| "expected output in the form `throttled=0x...`".to_owned())?;
+        .ok_or_else(|| ProbeError::Parse {
+            probe: "throttling",
+            detail: "expected output in the form `throttled=0x...`".to_owned(),
+        })?;
     let value = value
         .strip_prefix("0x")
-        .ok_or_else(|| "expected hexadecimal throttle value".to_owned())?;
-    let mask = u32::from_str_radix(value, 16)
-        .map_err(|_| "invalid hexadecimal throttle value".to_owned())?;
+        .ok_or_else(|| ProbeError::Parse {
+            probe: "throttling",
+            detail: "expected hexadecimal throttle value".to_owned(),
+        })?;
+    let mask = u32::from_str_radix(value, 16).map_err(|_| ProbeError::Parse {
+        probe: "throttling",
+        detail: "invalid hexadecimal throttle value".to_owned(),
+    })?;
 
     Ok(ThrottlingDetails {
         raw_value: Some(mask),

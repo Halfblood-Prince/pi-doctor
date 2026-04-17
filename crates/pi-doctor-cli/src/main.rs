@@ -4,6 +4,12 @@ use std::io::Write;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
+    let _ = env_logger::Builder::from_env(
+        env_logger::Env::default().filter_or("PI_DOCTOR_LOG", "warn"),
+    )
+    .format_timestamp(None)
+    .try_init();
+
     let cli = Cli::parse();
     match pi_doctor::run(cli) {
         Ok(response) => {

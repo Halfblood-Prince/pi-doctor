@@ -1,11 +1,14 @@
 pub mod cli;
 pub mod doctor;
+pub mod error;
 pub mod explain;
 pub mod output;
 
 use clap::CommandFactory;
 use clap_complete::generate;
 use cli::args::{Cli, Commands, DoctorTarget, ExplainTopic};
+use error::CliError;
+use log::warn;
 use pi_doctor_bundle::{BundleInput, write_bundle};
 use pi_doctor_core::{
     CameraSummary, Finding, FindingDomain, FindingGroup, OverallStatus, Probe, ProbeContext,
@@ -22,7 +25,7 @@ pub struct CliResponse {
     pub exit_code: u8,
 }
 
-pub fn run(cli: Cli) -> Result<CliResponse, Box<dyn std::error::Error>> {
+pub fn run(cli: Cli) -> Result<CliResponse, CliError> {
     let settings = output::RenderSettings::from_cli(&cli, std::io::stdout().is_terminal());
 
     match cli.command {
@@ -34,7 +37,7 @@ pub fn run(cli: Cli) -> Result<CliResponse, Box<dyn std::error::Error>> {
     }
 }
 
-pub fn render_check_json() -> Result<String, Box<dyn std::error::Error>> {
+pub fn render_check_json() -> Result<String, CliError> {
     let response =
         render_check_with_context(&ProbeContext::new(), output::RenderSettings::test_json())?;
     Ok(response.output)
@@ -46,12 +49,33 @@ pub fn build_check_report(ctx: &ProbeContext) -> Report {
     let kernel_probe = KernelProbe;
     let config_probe = ConfigTxtProbe;
 
-    let board = board_probe.collect(ctx);
-    let os = os_probe.collect(ctx);
-    let kernel = kernel_probe.collect(ctx);
-    let config = config_probe.collect(ctx);
-    let camera = CameraProbe.collect(ctx);
-    let python = PythonProbe.collect(ctx);
+    let board = board_probe.collect(ctx).unwrap_or_else(|error| {
+        warn!("board collection fallback: {error}");
+        Default::default()
+    });
+    let os = os_probe.collect(ctx).unwrap_or_else(|error| {
+        warn!("os collection fallback: {error}");
+        Default::default()
+    });
+    let kernel = kernel_probe.collect(ctx).unwrap_or_else(|error| {
+        warn!("kernel collection fallback: {error}");
+        pi_doctor_probes::kernel::KernelDetails {
+            architecture: Some(std::env::consts::ARCH.to_owned()),
+            release: None,
+        }
+    });
+    let config = config_probe.collect(ctx).unwrap_or_else(|error| {
+        warn!("config collection fallback: {error}");
+        Default::default()
+    });
+    let camera = CameraProbe.collect(ctx).unwrap_or_else(|error| {
+        warn!("camera collection fallback: {error}");
+        Default::default()
+    });
+    let python = PythonProbe.collect(ctx).unwrap_or_else(|error| {
+        warn!("python collection fallback: {error}");
+        Default::default()
+    });
     let mut findings = vec![
         board_probe.run(ctx),
         os_probe.run(ctx),
@@ -97,11 +121,11 @@ pub fn render_help() -> String {
 
 fn execute_check(
     settings: output::RenderSettings,
-) -> Result<CliResponse, Box<dyn std::error::Error>> {
+) -> Result<CliResponse, CliError> {
     render_check_with_context(&ProbeContext::new(), settings)
 }
 
-fn execute_explain(topic: ExplainTopic) -> Result<CliResponse, Box<dyn std::error::Error>> {
+fn execute_explain(topic: ExplainTopic) -> Result<CliResponse, CliError> {
     let ctx = ProbeContext::new();
     Ok(CliResponse {
         output: explain::render(topic, &ctx),
@@ -109,7 +133,7 @@ fn execute_explain(topic: ExplainTopic) -> Result<CliResponse, Box<dyn std::erro
     })
 }
 
-fn execute_support_bundle() -> Result<CliResponse, Box<dyn std::error::Error>> {
+fn execute_support_bundle() -> Result<CliResponse, CliError> {
     use std::collections::BTreeMap;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -190,7 +214,7 @@ fn execute_support_bundle() -> Result<CliResponse, Box<dyn std::error::Error>> {
     })
 }
 
-fn execute_doctor(target: DoctorTarget) -> Result<CliResponse, Box<dyn std::error::Error>> {
+fn execute_doctor(target: DoctorTarget) -> Result<CliResponse, CliError> {
     let ctx = ProbeContext::new();
     let output = match target {
         DoctorTarget::Camera => doctor::camera::render(&ctx),
@@ -205,7 +229,7 @@ fn execute_doctor(target: DoctorTarget) -> Result<CliResponse, Box<dyn std::erro
 
 fn execute_completions(
     shell: clap_complete::Shell,
-) -> Result<CliResponse, Box<dyn std::error::Error>> {
+) -> Result<CliResponse, CliError> {
     let mut command = Cli::command();
     let mut buffer = Vec::new();
     generate(shell, &mut command, "pi-doctor", &mut buffer);
@@ -218,7 +242,7 @@ fn execute_completions(
 fn render_check_with_context(
     ctx: &ProbeContext,
     settings: output::RenderSettings,
-) -> Result<CliResponse, Box<dyn std::error::Error>> {
+) -> Result<CliResponse, CliError> {
     let report = build_check_report(ctx);
     Ok(CliResponse {
         output: output::render_report(&report, settings)?,

@@ -1,3 +1,5 @@
+use crate::ProbeError;
+use log::warn;
 use pi_doctor_core::{Finding, Probe, ProbeContext, ProbeResult, Severity};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,19 +30,28 @@ pub struct ThermalDetails {
 pub struct ThermalProbe;
 
 impl ThermalProbe {
-    pub fn collect(&self, ctx: &ProbeContext) -> ThermalDetails {
-        let celsius = ctx
+    pub fn collect(&self, ctx: &ProbeContext) -> Result<ThermalDetails, ProbeError> {
+        let raw = ctx
             .read_text("/sys/class/thermal/thermal_zone0/temp")
-            .and_then(|raw| parse_thermal_millidegrees(&raw));
+            .ok_or(ProbeError::ReadText {
+                path: "/sys/class/thermal/thermal_zone0/temp",
+            })?;
+        let celsius = parse_thermal_millidegrees(&raw)?;
         let band = celsius.map(classify_temperature);
 
-        ThermalDetails { celsius, band }
+        Ok(ThermalDetails { celsius, band })
     }
 }
 
 impl Probe for ThermalProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        let details = self.collect(ctx);
+        let details = match self.collect(ctx) {
+            Ok(details) => details,
+            Err(error) => {
+                warn!("thermal probe fallback: {error}");
+                ThermalDetails::default()
+            }
+        };
 
         match details.band {
             Some(TemperatureBand::NearThrottle) => vec![Finding {
@@ -76,9 +87,16 @@ impl Probe for ThermalProbe {
     }
 }
 
-pub fn parse_thermal_millidegrees(raw: &str) -> Option<f32> {
-    let millidegrees: f32 = raw.trim().parse().ok()?;
-    Some(millidegrees / 1000.0)
+pub fn parse_thermal_millidegrees(raw: &str) -> Result<Option<f32>, ProbeError> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let millidegrees: f32 = trimmed.parse().map_err(|_| ProbeError::Parse {
+        probe: "thermal",
+        detail: "invalid millidegree value".to_owned(),
+    })?;
+    Ok(Some(millidegrees / 1000.0))
 }
 
 pub fn classify_temperature(celsius: f32) -> TemperatureBand {

@@ -1,3 +1,4 @@
+use crate::ProbeError;
 use pi_doctor_core::{
     CommandOutput, Finding, Probe, ProbeContext, ProbeResult, PythonSummary, Severity,
 };
@@ -24,7 +25,7 @@ pub struct PythonAnalysis {
 pub struct PythonProbe;
 
 impl PythonProbe {
-    pub fn collect(&self, ctx: &ProbeContext) -> PythonAnalysis {
+    pub fn collect(&self, ctx: &ProbeContext) -> Result<PythonAnalysis, ProbeError> {
         let version = match ctx.run_command("python3", PYTHON_VERSION_ARGS) {
             CommandOutput::Success(output) => Some(output.trim().to_owned()),
             _ => None,
@@ -63,13 +64,13 @@ impl PythonProbe {
         };
         let findings = python_findings(&summary);
 
-        PythonAnalysis { summary, findings }
+        Ok(PythonAnalysis { summary, findings })
     }
 }
 
 impl Probe for PythonProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        self.collect(ctx).findings
+        self.collect(ctx).map(|analysis| analysis.findings).unwrap_or_default()
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::ProbeError;
 use pi_doctor_core::{
     ConfigEntry, ConfigEntryKind, ConfigSummary, Finding, Probe, ProbeContext, ProbeResult,
     Severity,
@@ -23,7 +24,7 @@ pub struct ConfigAnalysis {
 pub struct ConfigTxtProbe;
 
 impl ConfigTxtProbe {
-    pub fn collect(&self, ctx: &ProbeContext) -> ConfigAnalysis {
+    pub fn collect(&self, ctx: &ProbeContext) -> Result<ConfigAnalysis, ProbeError> {
         let modern = ctx.read_text(MODERN_CONFIG_PATH);
         let legacy = ctx.read_text(LEGACY_CONFIG_PATH);
 
@@ -69,7 +70,7 @@ impl ConfigTxtProbe {
             .filter(|finding| finding.id.starts_with("config_txt."))
             .count();
 
-        ConfigAnalysis {
+        Ok(ConfigAnalysis {
             summary: ConfigSummary {
                 source_path,
                 using_firmware_path,
@@ -78,13 +79,13 @@ impl ConfigTxtProbe {
                 entries,
             },
             findings,
-        }
+        })
     }
 }
 
 impl Probe for ConfigTxtProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        self.collect(ctx).findings
+        self.collect(ctx).map(|analysis| analysis.findings).unwrap_or_default()
     }
 }
 
@@ -301,7 +302,8 @@ mod tests {
     #[test]
     fn prefers_modern_firmware_path() {
         let root = fixture_root("modern-layout");
-        let analysis = ConfigTxtProbe.collect(&ProbeContext::with_root(root));
+        let analysis =
+            ConfigTxtProbe.collect(&ProbeContext::with_root(root)).expect("fixture should parse");
 
         assert_eq!(
             analysis.summary.source_path.as_deref(),

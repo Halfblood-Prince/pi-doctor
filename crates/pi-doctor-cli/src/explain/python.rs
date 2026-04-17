@@ -2,7 +2,7 @@ use pi_doctor_core::ProbeContext;
 use pi_doctor_probes::python::PythonProbe;
 
 pub fn render(ctx: &ProbeContext) -> String {
-    let analysis = PythonProbe.collect(ctx);
+    let analysis = PythonProbe.collect(ctx).unwrap_or_default();
     let summary = analysis.summary;
     let mut lines = vec![
         "pi-doctor explain python".to_owned(),

@@ -2,7 +2,7 @@ use pi_doctor_core::ProbeContext;
 use pi_doctor_probes::gpio::GpioProbe;
 
 pub fn render(ctx: &ProbeContext) -> String {
-    let analysis = GpioProbe.collect(ctx);
+    let analysis = GpioProbe.collect(ctx).unwrap_or_default();
     let mut lines = vec![
         "pi-doctor doctor gpio".to_owned(),
         "GPIO stack recommendation".to_owned(),

@@ -1,3 +1,5 @@
+use crate::ProbeError;
+use log::warn;
 use pi_doctor_core::{Finding, Probe, ProbeContext, ProbeResult, Severity};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -10,7 +12,7 @@ pub struct BoardDetails {
 pub struct BoardProbe;
 
 impl BoardProbe {
-    pub fn collect(&self, ctx: &ProbeContext) -> BoardDetails {
+    pub fn collect(&self, ctx: &ProbeContext) -> Result<BoardDetails, ProbeError> {
         let model = ctx
             .read_text("/proc/device-tree/model")
             .map(|raw| raw.trim_matches(char::from(0)).trim().to_owned())
@@ -27,17 +29,29 @@ impl BoardProbe {
                 .as_deref()
                 .is_some_and(|value| value.contains("BCM") || value.contains("Raspberry Pi"));
 
-        BoardDetails {
+        if model.is_none() && cpuinfo.trim().is_empty() {
+            return Err(ProbeError::ReadText {
+                path: "/proc/device-tree/model or /proc/cpuinfo",
+            });
+        }
+
+        Ok(BoardDetails {
             model: model.or(model_name),
             revision,
             is_raspberry_pi,
-        }
+        })
     }
 }
 
 impl Probe for BoardProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        let details = self.collect(ctx);
+        let details = match self.collect(ctx) {
+            Ok(details) => details,
+            Err(error) => {
+                warn!("board probe fallback: {error}");
+                BoardDetails::default()
+            }
+        };
         if details.is_raspberry_pi {
             Vec::new()
         } else {

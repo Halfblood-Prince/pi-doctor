@@ -1,3 +1,5 @@
+use crate::ProbeError;
+use log::{debug, warn};
 use pi_doctor_core::{
     CameraDevice, CameraSummary, CommandOutput, Finding, Probe, ProbeContext, ProbeResult, Severity,
 };
@@ -11,7 +13,7 @@ pub struct CameraAnalysis {
 pub struct CameraProbe;
 
 impl CameraProbe {
-    pub fn collect(&self, ctx: &ProbeContext) -> CameraAnalysis {
+    pub fn collect(&self, ctx: &ProbeContext) -> Result<CameraAnalysis, ProbeError> {
         let rpicam_help = ctx.run_command("rpicam-hello", &["--help"]);
         let libcamera_help = ctx.run_command("libcamera-hello", &["--help"]);
         let rpicam_present = !matches!(rpicam_help, CommandOutput::Missing);
@@ -38,6 +40,9 @@ impl CameraProbe {
             .as_deref()
             .map(parse_camera_inventory)
             .unwrap_or_default();
+        if tool_used.is_none() && !rpicam_present && !libcamera_present {
+            debug!("camera probe fallback: no camera inventory tools were detected");
+        }
 
         let summary = CameraSummary {
             tool_used,
@@ -49,13 +54,25 @@ impl CameraProbe {
 
         let findings = camera_findings(&summary);
 
-        CameraAnalysis { summary, findings }
+        Ok(CameraAnalysis { summary, findings })
     }
 }
 
 impl Probe for CameraProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        self.collect(ctx).findings
+        match self.collect(ctx) {
+            Ok(analysis) => analysis.findings,
+            Err(error) => {
+                warn!("camera probe fallback: {error}");
+                camera_findings(&CameraSummary {
+                    tool_used: None,
+                    rpicam_hello_present: false,
+                    libcamera_hello_present: false,
+                    video_devices: Vec::new(),
+                    cameras: Vec::new(),
+                })
+            }
+        }
     }
 }
 

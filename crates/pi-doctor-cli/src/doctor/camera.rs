@@ -2,7 +2,7 @@ use pi_doctor_core::ProbeContext;
 use pi_doctor_probes::camera::CameraProbe;
 
 pub fn render(ctx: &ProbeContext) -> String {
-    let analysis = CameraProbe.collect(ctx);
+    let analysis = CameraProbe.collect(ctx).unwrap_or_default();
     let summary = analysis.summary;
     let available_tools = match (
         summary.rpicam_hello_present,

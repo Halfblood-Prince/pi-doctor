@@ -1,3 +1,4 @@
+use crate::ProbeError;
 use pi_doctor_core::{Probe, ProbeContext, ProbeResult};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -9,7 +10,7 @@ pub struct KernelDetails {
 pub struct KernelProbe;
 
 impl KernelProbe {
-    pub fn collect(&self, ctx: &ProbeContext) -> KernelDetails {
+    pub fn collect(&self, ctx: &ProbeContext) -> Result<KernelDetails, ProbeError> {
         let cpuinfo = ctx.read_text("/proc/cpuinfo").unwrap_or_default();
         let release = ctx
             .read_text("/proc/sys/kernel/osrelease")
@@ -23,10 +24,16 @@ impl KernelProbe {
             })
             .or_else(|| Some(std::env::consts::ARCH.to_owned()));
 
-        KernelDetails {
+        if release.is_none() && cpuinfo.trim().is_empty() {
+            return Err(ProbeError::ReadText {
+                path: "/proc/sys/kernel/osrelease or /proc/cpuinfo",
+            });
+        }
+
+        Ok(KernelDetails {
             architecture,
             release,
-        }
+        })
     }
 }
 

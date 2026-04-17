@@ -8,4 +8,6 @@ homepage.workspace = true
 description.workspace = true
 
 [dependencies]
+log.workspace = true
 pi-doctor-core = { path = "../pi-doctor-core" }
+thiserror.workspace = true

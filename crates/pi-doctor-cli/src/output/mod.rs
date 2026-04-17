@@ -1,3 +1,4 @@
+use crate::error::CliError;
 use crate::cli::args::Cli;
 use pi_doctor_core::Report;
 
@@ -69,7 +70,7 @@ impl RenderSettings {
 pub fn render_report(
     report: &Report,
     settings: RenderSettings,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<String, CliError> {
     match settings.mode {
         OutputMode::Human => {
             let options = pi_doctor_report::human::RenderOptions {
