@@ -136,12 +136,10 @@ pub fn parse_throttled_output(raw: &str) -> Result<ThrottlingDetails, ProbeError
             probe: "throttling",
             detail: "expected output in the form `throttled=0x...`".to_owned(),
         })?;
-    let value = value
-        .strip_prefix("0x")
-        .ok_or_else(|| ProbeError::Parse {
-            probe: "throttling",
-            detail: "expected hexadecimal throttle value".to_owned(),
-        })?;
+    let value = value.strip_prefix("0x").ok_or_else(|| ProbeError::Parse {
+        probe: "throttling",
+        detail: "expected hexadecimal throttle value".to_owned(),
+    })?;
     let mask = u32::from_str_radix(value, 16).map_err(|_| ProbeError::Parse {
         probe: "throttling",
         detail: "invalid hexadecimal throttle value".to_owned(),

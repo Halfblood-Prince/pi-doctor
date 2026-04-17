@@ -5,11 +5,13 @@ use pi_doctor_probes::{
 };
 
 pub fn render(ctx: &ProbeContext) -> String {
-    let throttling = ThrottlingProbe.collect(ctx).unwrap_or_else(|error| ThrottlingDetails {
-        vcgencmd_available: true,
-        error: Some(error.to_string()),
-        ..ThrottlingDetails::default()
-    });
+    let throttling = ThrottlingProbe
+        .collect(ctx)
+        .unwrap_or_else(|error| ThrottlingDetails {
+            vcgencmd_available: true,
+            error: Some(error.to_string()),
+            ..ThrottlingDetails::default()
+        });
     let thermal = ThermalProbe.collect(ctx).unwrap_or_default();
 
     let mut lines = vec![

@@ -119,9 +119,7 @@ pub fn render_help() -> String {
     command.render_long_help().to_string()
 }
 
-fn execute_check(
-    settings: output::RenderSettings,
-) -> Result<CliResponse, CliError> {
+fn execute_check(settings: output::RenderSettings) -> Result<CliResponse, CliError> {
     render_check_with_context(&ProbeContext::new(), settings)
 }
 
@@ -227,9 +225,7 @@ fn execute_doctor(target: DoctorTarget) -> Result<CliResponse, CliError> {
     })
 }
 
-fn execute_completions(
-    shell: clap_complete::Shell,
-) -> Result<CliResponse, CliError> {
+fn execute_completions(shell: clap_complete::Shell) -> Result<CliResponse, CliError> {
     let mut command = Cli::command();
     let mut buffer = Vec::new();
     generate(shell, &mut command, "pi-doctor", &mut buffer);

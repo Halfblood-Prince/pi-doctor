@@ -45,13 +45,23 @@ fn pi4_lite_fixture_covers_identity_config_gpio_and_empty_camera_inventory() {
             )),
         );
 
-    let board = BoardProbe.collect(&ctx).expect("board fixture should parse");
+    let board = BoardProbe
+        .collect(&ctx)
+        .expect("board fixture should parse");
     let os = OsProbe.collect(&ctx).expect("os fixture should parse");
-    let kernel = KernelProbe.collect(&ctx).expect("kernel fixture should parse");
-    let config = ConfigTxtProbe.collect(&ctx).expect("config fixture should parse");
+    let kernel = KernelProbe
+        .collect(&ctx)
+        .expect("kernel fixture should parse");
+    let config = ConfigTxtProbe
+        .collect(&ctx)
+        .expect("config fixture should parse");
     let gpio = GpioProbe.collect(&ctx).expect("gpio fixture should parse");
-    let camera = CameraProbe.collect(&ctx).expect("camera fixture should parse");
-    let thermal = ThermalProbe.collect(&ctx).expect("thermal fixture should parse");
+    let camera = CameraProbe
+        .collect(&ctx)
+        .expect("camera fixture should parse");
+    let thermal = ThermalProbe
+        .collect(&ctx)
+        .expect("thermal fixture should parse");
 
     assert_eq!(
         board.model.as_deref(),
@@ -158,10 +168,16 @@ fn pi5_desktop_camera_fixture_covers_camera_python_and_gpio_matrix_paths() {
             CommandOutput::Success(capture("pi5-bookworm-desktop-camera", "dpkg-gpiozero.txt")),
         );
 
-    let camera = CameraProbe.collect(&ctx).expect("camera fixture should parse");
+    let camera = CameraProbe
+        .collect(&ctx)
+        .expect("camera fixture should parse");
     let gpio = GpioProbe.collect(&ctx).expect("gpio fixture should parse");
-    let python = PythonProbe.collect(&ctx).expect("python fixture should parse");
-    let thermal = ThermalProbe.collect(&ctx).expect("thermal fixture should parse");
+    let python = PythonProbe
+        .collect(&ctx)
+        .expect("python fixture should parse");
+    let thermal = ThermalProbe
+        .collect(&ctx)
+        .expect("thermal fixture should parse");
 
     assert_eq!(camera.summary.cameras.len(), 1);
     assert_eq!(camera.summary.cameras[0].name, "imx708_wide");
@@ -193,8 +209,12 @@ fn stressed_fixture_covers_throttling_and_spacing_tolerant_parsers() {
         )),
     );
 
-    let throttling = ThrottlingProbe.collect(&ctx).expect("throttling fixture should parse");
-    let thermal = ThermalProbe.collect(&ctx).expect("thermal fixture should parse");
+    let throttling = ThrottlingProbe
+        .collect(&ctx)
+        .expect("throttling fixture should parse");
+    let thermal = ThermalProbe
+        .collect(&ctx)
+        .expect("thermal fixture should parse");
     let pin_functions = parse_pinctrl_functions(&capture("pi5-stressed-lab-rig", "pinctrl.txt"));
 
     assert!(throttling.undervoltage_now);

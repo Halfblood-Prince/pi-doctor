@@ -70,7 +70,9 @@ impl PythonProbe {
 
 impl Probe for PythonProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        self.collect(ctx).map(|analysis| analysis.findings).unwrap_or_default()
+        self.collect(ctx)
+            .map(|analysis| analysis.findings)
+            .unwrap_or_default()
     }
 }
 

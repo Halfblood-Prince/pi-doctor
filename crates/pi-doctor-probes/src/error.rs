@@ -11,8 +11,5 @@ pub enum ProbeError {
     #[error("missing required tool `{program}`")]
     MissingTool { program: &'static str },
     #[error("{probe} parse error: {detail}")]
-    Parse {
-        probe: &'static str,
-        detail: String,
-    },
+    Parse { probe: &'static str, detail: String },
 }

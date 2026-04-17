@@ -85,7 +85,9 @@ impl ConfigTxtProbe {
 
 impl Probe for ConfigTxtProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        self.collect(ctx).map(|analysis| analysis.findings).unwrap_or_default()
+        self.collect(ctx)
+            .map(|analysis| analysis.findings)
+            .unwrap_or_default()
     }
 }
 
@@ -302,8 +304,9 @@ mod tests {
     #[test]
     fn prefers_modern_firmware_path() {
         let root = fixture_root("modern-layout");
-        let analysis =
-            ConfigTxtProbe.collect(&ProbeContext::with_root(root)).expect("fixture should parse");
+        let analysis = ConfigTxtProbe
+            .collect(&ProbeContext::with_root(root))
+            .expect("fixture should parse");
 
         assert_eq!(
             analysis.summary.source_path.as_deref(),
