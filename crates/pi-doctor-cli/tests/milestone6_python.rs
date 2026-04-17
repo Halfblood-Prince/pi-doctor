@@ -41,11 +41,12 @@ fn explain_python_snapshot_for_externally_managed_system_python() {
             &["-W", "-f=${Status}", "python3-gpiozero"],
             CommandOutput::Failure("package not installed".to_owned()),
         );
+    let output = pi_doctor::explain::python::render(&ctx);
 
-    assert_snapshot!(
-        "explain_python_externally_managed",
-        pi_doctor::explain::python::render(&ctx)
-    );
+    assert!(output.contains("externally managed: yes"));
+    assert!(output.contains("virtual environment: not active"));
+    assert!(output.contains("detected distro packages: python3-picamera2"));
+    assert_snapshot!("explain_python_externally_managed", output);
 }
 
 #[test]
@@ -87,11 +88,12 @@ fn explain_python_snapshot_for_active_venv() {
             &["-W", "-f=${Status}", "python3-gpiozero"],
             CommandOutput::Failure("package not installed".to_owned()),
         );
+    let output = pi_doctor::explain::python::render(&ctx);
 
-    assert_snapshot!(
-        "explain_python_active_venv",
-        pi_doctor::explain::python::render(&ctx)
-    );
+    assert!(output.contains("virtual environment: active"));
+    assert!(output.contains("externally managed: no"));
+    assert!(output.contains("Install pip-only packages inside the active venv"));
+    assert_snapshot!("explain_python_active_venv", output);
 }
 
 fn fixture_ctx(name: &str) -> ProbeContext {

@@ -1,0 +1,12 @@
+pi-doctor doctor camera
+Verdict: userspace tools missing
+  tool used: none
+  available tools: none
+  video devices: none detected
+
+Inventory
+  No cameras detected by the available camera tool.
+
+Why this verdict
+  Camera userspace tools are missing.
+  Neither `rpicam-hello` nor `libcamera-hello` appears to be available, so pi-doctor cannot query camera inventory.

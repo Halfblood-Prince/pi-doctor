@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum, error::ErrorKind};
 use clap_complete::Shell;
 
 #[derive(Debug, Parser)]
@@ -6,19 +6,20 @@ use clap_complete::Shell;
     name = "pi-doctor",
     version,
     about = "Human-first Raspberry Pi diagnostics",
-    long_about = None
+    long_about = None,
+    arg_required_else_help = true
 )]
 pub struct Cli {
     #[arg(long, global = true)]
     pub json: bool,
 
-    #[arg(long, global = true, conflicts_with = "verbose")]
+    #[arg(long, global = true, conflicts_with_all = ["verbose", "json"])]
     pub quiet: bool,
 
-    #[arg(long, global = true, conflicts_with = "quiet")]
+    #[arg(long, global = true, conflicts_with_all = ["quiet", "json"])]
     pub verbose: bool,
 
-    #[arg(long, global = true)]
+    #[arg(long, global = true, conflicts_with = "json")]
     pub no_color: bool,
 
     #[command(subcommand)]
@@ -77,5 +78,54 @@ impl DoctorTarget {
             Self::Camera => "camera",
             Self::Gpio => "gpio",
         }
+    }
+}
+
+impl Cli {
+    pub fn validate(self) -> clap::error::Result<Self> {
+        if self.json && !matches!(self.command, Commands::Check {}) {
+            return Err(Self::command().error(
+                ErrorKind::ArgumentConflict,
+                "`--json` is only supported with `pi-doctor check`",
+            ));
+        }
+
+        Ok(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Cli;
+    use clap::Parser;
+
+    #[test]
+    fn rejects_json_for_non_check_commands() {
+        let error = Cli::try_parse_from(["pi-doctor", "--json", "doctor", "gpio"])
+            .and_then(Cli::validate)
+            .expect_err("json should be rejected for non-check commands");
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+        assert!(
+            error
+                .to_string()
+                .contains("only supported with `pi-doctor check`")
+        );
+    }
+
+    #[test]
+    fn rejects_quiet_with_json() {
+        let error = Cli::try_parse_from(["pi-doctor", "--json", "--quiet", "check"])
+            .expect_err("quiet should conflict with json");
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn rejects_no_color_with_json() {
+        let error = Cli::try_parse_from(["pi-doctor", "--json", "--no-color", "check"])
+            .expect_err("no-color should conflict with json");
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
     }
 }

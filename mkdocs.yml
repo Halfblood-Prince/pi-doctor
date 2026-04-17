@@ -1,0 +1,22 @@
+site_name: pi-doctor
+site_description: Human-first Raspberry Pi diagnostics
+docs_dir: docs
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - content.code.copy
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+nav:
+  - Overview: index.md
+  - Getting Started: getting-started.md
+  - CLI Contract: cli-contract.md
+  - Exit Codes: exit-codes.md
+  - JSON Schema: json-schema.md
+  - Hardware Matrix: hardware-matrix.md
+  - Development: development.md
+  - Testing: testing.md

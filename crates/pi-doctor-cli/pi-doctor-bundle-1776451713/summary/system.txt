@@ -1,0 +1,7 @@
+board_model=unknown
+board_revision=unknown
+architecture=x86_64
+distro=unknown
+version=unknown
+kernel=unknown
+is_raspberry_pi=false

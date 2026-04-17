@@ -1,0 +1,14 @@
+bundle=pi-doctor-bundle-1776451713
+raw/camera/inventory.txt
+raw/config/source-path.txt
+raw/firmware/get_throttled.txt
+raw/firmware/version.txt
+raw/python/summary.txt
+raw/thermal/temp.txt
+report.json
+report.txt
+summary/camera.txt
+summary/config.txt
+summary/gpio.txt
+summary/python.txt
+summary/system.txt

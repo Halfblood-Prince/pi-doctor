@@ -1,0 +1,8 @@
+pi-doctor explain config
+Boot configuration analysis
+  source path: unavailable
+  layout: legacy /boot layout or unknown
+  diagnostics: 0
+
+Findings
+  No config.txt warnings were detected.

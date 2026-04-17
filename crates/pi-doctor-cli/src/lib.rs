@@ -1,13 +1,12 @@
 pub mod cli;
 pub mod doctor;
-pub mod error;
 pub mod explain;
 pub mod output;
 
+use anyhow::{Context, Result};
 use clap::CommandFactory;
 use clap_complete::generate;
 use cli::args::{Cli, Commands, DoctorTarget, ExplainTopic};
-use error::CliError;
 use log::warn;
 use pi_doctor_bundle::{BundleInput, write_bundle};
 use pi_doctor_core::{
@@ -25,7 +24,7 @@ pub struct CliResponse {
     pub exit_code: u8,
 }
 
-pub fn run(cli: Cli) -> Result<CliResponse, CliError> {
+pub fn run(cli: Cli) -> Result<CliResponse> {
     let settings = output::RenderSettings::from_cli(&cli, std::io::stdout().is_terminal());
 
     match cli.command {
@@ -37,7 +36,7 @@ pub fn run(cli: Cli) -> Result<CliResponse, CliError> {
     }
 }
 
-pub fn render_check_json() -> Result<String, CliError> {
+pub fn render_check_json() -> Result<String> {
     let response =
         render_check_with_context(&ProbeContext::new(), output::RenderSettings::test_json())?;
     Ok(response.output)
@@ -119,11 +118,11 @@ pub fn render_help() -> String {
     command.render_long_help().to_string()
 }
 
-fn execute_check(settings: output::RenderSettings) -> Result<CliResponse, CliError> {
+fn execute_check(settings: output::RenderSettings) -> Result<CliResponse> {
     render_check_with_context(&ProbeContext::new(), settings)
 }
 
-fn execute_explain(topic: ExplainTopic) -> Result<CliResponse, CliError> {
+fn execute_explain(topic: ExplainTopic) -> Result<CliResponse> {
     let ctx = ProbeContext::new();
     Ok(CliResponse {
         output: explain::render(topic, &ctx),
@@ -131,7 +130,7 @@ fn execute_explain(topic: ExplainTopic) -> Result<CliResponse, CliError> {
     })
 }
 
-fn execute_support_bundle() -> Result<CliResponse, CliError> {
+fn execute_support_bundle() -> Result<CliResponse> {
     use std::collections::BTreeMap;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -191,7 +190,10 @@ fn execute_support_bundle() -> Result<CliResponse, CliError> {
         render_python_summary(&report),
     );
 
-    let seconds = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+    let seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .context("failed to compute support bundle timestamp")?
+        .as_secs();
     let bundle_name = format!("pi-doctor-bundle-{seconds}");
     let result = write_bundle(
         ".",
@@ -200,7 +202,8 @@ fn execute_support_bundle() -> Result<CliResponse, CliError> {
             report,
             extra_files,
         },
-    )?;
+    )
+    .context("failed to write support bundle")?;
 
     Ok(CliResponse {
         output: format!(
@@ -212,7 +215,7 @@ fn execute_support_bundle() -> Result<CliResponse, CliError> {
     })
 }
 
-fn execute_doctor(target: DoctorTarget) -> Result<CliResponse, CliError> {
+fn execute_doctor(target: DoctorTarget) -> Result<CliResponse> {
     let ctx = ProbeContext::new();
     let output = match target {
         DoctorTarget::Camera => doctor::camera::render(&ctx),
@@ -225,12 +228,12 @@ fn execute_doctor(target: DoctorTarget) -> Result<CliResponse, CliError> {
     })
 }
 
-fn execute_completions(shell: clap_complete::Shell) -> Result<CliResponse, CliError> {
+fn execute_completions(shell: clap_complete::Shell) -> Result<CliResponse> {
     let mut command = Cli::command();
     let mut buffer = Vec::new();
     generate(shell, &mut command, "pi-doctor", &mut buffer);
     Ok(CliResponse {
-        output: String::from_utf8(buffer)?,
+        output: String::from_utf8(buffer).context("failed to encode shell completions as UTF-8")?,
         exit_code: 0,
     })
 }
@@ -238,10 +241,10 @@ fn execute_completions(shell: clap_complete::Shell) -> Result<CliResponse, CliEr
 fn render_check_with_context(
     ctx: &ProbeContext,
     settings: output::RenderSettings,
-) -> Result<CliResponse, CliError> {
+) -> Result<CliResponse> {
     let report = build_check_report(ctx);
     Ok(CliResponse {
-        output: output::render_report(&report, settings)?,
+        output: output::render_report(&report, settings).context("failed to render report")?,
         exit_code: exit_code_for_status(report.overall_status),
     })
 }

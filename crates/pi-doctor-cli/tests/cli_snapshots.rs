@@ -1,11 +1,16 @@
 use insta::assert_snapshot;
 use pi_doctor_core::{CommandOutput, ProbeContext};
+use serde_json::Value;
 use std::path::PathBuf;
 use std::process::Command;
 
 #[test]
 fn help_output_snapshot() {
-    assert_snapshot!("help_output", normalize(binary_output(&["--help"], &[0])));
+    let output = normalize(binary_output(&["--help"], &[0]));
+    assert!(output.contains("Run the full diagnostic probe set"));
+    assert!(output.contains("support-bundle"));
+    assert!(output.contains("--json"));
+    assert_snapshot!("help_output", output);
 }
 
 #[test]
@@ -15,6 +20,18 @@ fn check_json_snapshot() {
         pi_doctor::output::RenderSettings::test_json(),
     )
     .expect("fixture-backed json render should succeed");
+
+    let parsed: Value = serde_json::from_str(&output).expect("output should be valid json");
+    assert_eq!(parsed["schema_version"], "1.0.0");
+    assert_eq!(parsed["overall_status"], "warning");
+    assert_eq!(parsed["metadata"]["command"], "check");
+    assert!(
+        parsed["findings"]
+            .as_array()
+            .expect("findings should be an array")
+            .iter()
+            .any(|finding| finding["id"] == "board.non_raspberry_pi")
+    );
 
     assert_snapshot!("check_json_output", output);
 }

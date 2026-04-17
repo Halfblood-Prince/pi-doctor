@@ -14,7 +14,7 @@ pub struct ThrottlingDetails {
     pub throttling_happened: bool,
     pub soft_temperature_limit_happened: bool,
     pub vcgencmd_available: bool,
-    pub error: Option<String>,
+    pub error: Option<ProbeError>,
 }
 
 pub struct ThrottlingProbe;
@@ -50,7 +50,7 @@ impl Probe for ThrottlingProbe {
                 warn!("throttling probe fallback: {error}");
                 ThrottlingDetails {
                     vcgencmd_available: true,
-                    error: Some(error.to_string()),
+                    error: Some(error),
                     ..ThrottlingDetails::default()
                 }
             }
@@ -78,7 +78,7 @@ impl Probe for ThrottlingProbe {
                 severity: Severity::Warning,
                 title: "vcgencmd throttling query failed".to_owned(),
                 summary: "pi-doctor tried to read throttling telemetry, but the firmware command did not return a usable result.".to_owned(),
-                evidence: vec![error],
+                evidence: vec![error.to_string()],
                 suggested_actions: vec![
                     "Why this matters: without a valid throttle bitmask, undervoltage and thermal history cannot be decoded reliably.".to_owned(),
                     "What to run next: run `vcgencmd get_throttled` directly and compare the output before rerunning `pi-doctor explain throttling`.".to_owned(),

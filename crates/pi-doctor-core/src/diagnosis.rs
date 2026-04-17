@@ -1,6 +1,8 @@
 use crate::severity::Severity;
 use serde::Serialize;
 use std::collections::BTreeMap;
+#[cfg(windows)]
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -99,6 +101,27 @@ impl ProbeContext {
             Err(error) => CommandOutput::Failure(error.to_string()),
         }
     }
+
+    pub fn command_exists(&self, program: &str) -> bool {
+        let mut saw_mock = false;
+        let mut found_present_mock = false;
+
+        for (key, output) in &self.commands {
+            let mocked_program = key.split('\0').next().unwrap_or_default();
+            if mocked_program == program {
+                saw_mock = true;
+                if !matches!(output, CommandOutput::Missing) {
+                    found_present_mock = true;
+                }
+            }
+        }
+
+        if saw_mock {
+            return found_present_mock;
+        }
+
+        command_in_path(program)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,8 +152,68 @@ fn strip_root(path: &Path) -> PathBuf {
     relative
 }
 
+fn command_in_path(program: &str) -> bool {
+    let candidate = Path::new(program);
+    if candidate.components().count() > 1 {
+        return candidate.is_file();
+    }
+
+    let Some(paths) = std::env::var_os("PATH") else {
+        return false;
+    };
+
+    #[cfg(windows)]
+    let exts = windows_path_exts();
+
+    for dir in std::env::split_paths(&paths) {
+        let joined = dir.join(program);
+        if joined.is_file() {
+            return true;
+        }
+
+        #[cfg(windows)]
+        for ext in &exts {
+            let with_ext = dir.join(format!("{program}{ext}"));
+            if with_ext.is_file() {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+#[cfg(windows)]
+fn windows_path_exts() -> Vec<String> {
+    let raw = std::env::var_os("PATHEXT").unwrap_or_else(|| OsString::from(".COM;.EXE;.BAT;.CMD"));
+    raw.to_string_lossy()
+        .split(';')
+        .filter(|ext| !ext.is_empty())
+        .map(|ext| ext.to_ascii_lowercase())
+        .collect()
+}
+
 pub type ProbeResult = Vec<Finding>;
 
 pub trait Probe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CommandOutput, ProbeContext};
+
+    #[test]
+    fn command_exists_uses_mocked_outputs() {
+        let ctx = ProbeContext::new()
+            .with_command_output("vcgencmd", &["version"], CommandOutput::Missing)
+            .with_command_output(
+                "python3",
+                &["--version"],
+                CommandOutput::Success("Python 3.11.0".to_owned()),
+            );
+
+        assert!(!ctx.command_exists("vcgencmd"));
+        assert!(ctx.command_exists("python3"));
+    }
 }

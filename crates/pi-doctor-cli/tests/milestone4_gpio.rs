@@ -32,8 +32,12 @@ fn doctor_gpio_snapshot_with_tools_and_alt_functions() {
             &["help"],
             CommandOutput::Success("usage".to_owned()),
         );
+    let output = pi_doctor::doctor::gpio::render(&ctx);
 
-    assert_snapshot!("doctor_gpio_ready", pi_doctor::doctor::gpio::render(&ctx));
+    assert!(output.contains("pinctrl: present"));
+    assert!(output.contains("raspi-gpio: present (deprecated)"));
+    assert!(output.contains("GPIO3 currently appears owned by alternate function SDA1."));
+    assert_snapshot!("doctor_gpio_ready", output);
 }
 
 #[test]
@@ -44,11 +48,12 @@ fn doctor_gpio_snapshot_without_tools() {
         .with_command_output("gpioinfo", &["--help"], CommandOutput::Missing)
         .with_command_output("gpiodetect", &["--help"], CommandOutput::Missing)
         .with_command_output("raspi-gpio", &["help"], CommandOutput::Missing);
+    let output = pi_doctor::doctor::gpio::render(&ctx);
 
-    assert_snapshot!(
-        "doctor_gpio_missing_tools",
-        pi_doctor::doctor::gpio::render(&ctx)
-    );
+    assert!(output.contains("pinctrl: missing"));
+    assert!(output.contains("libgpiod tools: missing"));
+    assert!(output.contains("GPIO inspection tooling is sparse here"));
+    assert_snapshot!("doctor_gpio_missing_tools", output);
 }
 
 fn fixture_ctx(name: &str) -> ProbeContext {

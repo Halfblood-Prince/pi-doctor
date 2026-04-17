@@ -1,5 +1,6 @@
 use pi_doctor_core::ProbeContext;
 use pi_doctor_probes::{
+    ProbeError,
     thermal::{TemperatureBand, ThermalProbe},
     throttling::{ThrottlingDetails, ThrottlingProbe},
 };
@@ -9,7 +10,7 @@ pub fn render(ctx: &ProbeContext) -> String {
         .collect(ctx)
         .unwrap_or_else(|error| ThrottlingDetails {
             vcgencmd_available: true,
-            error: Some(error.to_string()),
+            error: Some(error),
             ..ThrottlingDetails::default()
         });
     let thermal = ThermalProbe.collect(ctx).unwrap_or_default();
@@ -51,6 +52,12 @@ pub fn render(ctx: &ProbeContext) -> String {
     if let Some(error) = &throttling.error {
         lines.push("  `vcgencmd get_throttled` returned unusable output.".to_owned());
         lines.push(format!("  Evidence: {error}"));
+        if let ProbeError::MissingTool { .. } = error {
+            lines.push(
+                "  This looks like a missing firmware utility rather than a malformed firmware response."
+                    .to_owned(),
+            );
+        }
         lines.push(
             "  What to run next: run `vcgencmd get_throttled` directly and compare the raw output."
                 .to_owned(),

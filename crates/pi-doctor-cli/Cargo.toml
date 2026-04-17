@@ -8,6 +8,7 @@ homepage.workspace = true
 description.workspace = true
 
 [dependencies]
+anyhow.workspace = true
 clap.workspace = true
 clap_complete.workspace = true
 env_logger.workspace = true
@@ -17,7 +18,6 @@ pi-doctor-core = { path = "../pi-doctor-core" }
 pi-doctor-probes = { path = "../pi-doctor-probes" }
 pi-doctor-report = { path = "../pi-doctor-report" }
 serde_json.workspace = true
-thiserror.workspace = true
 
 [dev-dependencies]
 insta = { version = "1.43.2", features = ["glob"] }

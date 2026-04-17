@@ -1,3 +1,4 @@
+use clap::Parser;
 use pi_doctor::cli::args::{Cli, Commands};
 use pi_doctor::output::RenderSettings;
 use pi_doctor_core::{CommandOutput, ProbeContext};
@@ -53,6 +54,16 @@ fn non_check_commands_return_zero_on_success() {
 
         assert_eq!(response.exit_code, 0);
     }
+}
+
+#[test]
+fn check_accepts_json_mode() {
+    let cli = Cli::try_parse_from(["pi-doctor", "--json", "check"])
+        .and_then(Cli::validate)
+        .expect("json check should be accepted");
+
+    assert!(cli.json);
+    assert!(matches!(cli.command, Commands::Check {}));
 }
 
 fn fixture_ctx(name: &str) -> ProbeContext {

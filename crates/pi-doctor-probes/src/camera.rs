@@ -14,26 +14,39 @@ pub struct CameraProbe;
 
 impl CameraProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<CameraAnalysis, ProbeError> {
-        let rpicam_help = ctx.run_command("rpicam-hello", &["--help"]);
-        let libcamera_help = ctx.run_command("libcamera-hello", &["--help"]);
-        let rpicam_present = !matches!(rpicam_help, CommandOutput::Missing);
-        let libcamera_present = !matches!(libcamera_help, CommandOutput::Missing);
+        let rpicam_present = ctx.command_exists("rpicam-hello");
+        let libcamera_present = ctx.command_exists("libcamera-hello");
         let video_devices = ctx
             .list_dir("/dev")
             .into_iter()
             .filter(|name| name.starts_with("video"))
             .collect::<Vec<_>>();
 
-        let (tool_used, tool_output) = match ctx.run_command("rpicam-hello", &["--list-cameras"]) {
-            CommandOutput::Success(output) => (Some("rpicam-hello".to_owned()), Some(output)),
-            CommandOutput::Failure(_) | CommandOutput::Missing => {
-                match ctx.run_command("libcamera-hello", &["--list-cameras"]) {
-                    CommandOutput::Success(output) => {
-                        (Some("libcamera-hello".to_owned()), Some(output))
+        let (tool_used, tool_output) = if rpicam_present {
+            match ctx.run_command("rpicam-hello", &["--list-cameras"]) {
+                CommandOutput::Success(output) => (Some("rpicam-hello".to_owned()), Some(output)),
+                CommandOutput::Failure(_) | CommandOutput::Missing => {
+                    if libcamera_present {
+                        match ctx.run_command("libcamera-hello", &["--list-cameras"]) {
+                            CommandOutput::Success(output) => {
+                                (Some("libcamera-hello".to_owned()), Some(output))
+                            }
+                            CommandOutput::Failure(_) | CommandOutput::Missing => (None, None),
+                        }
+                    } else {
+                        (None, None)
                     }
-                    CommandOutput::Failure(_) | CommandOutput::Missing => (None, None),
                 }
             }
+        } else if libcamera_present {
+            match ctx.run_command("libcamera-hello", &["--list-cameras"]) {
+                CommandOutput::Success(output) => {
+                    (Some("libcamera-hello".to_owned()), Some(output))
+                }
+                CommandOutput::Failure(_) | CommandOutput::Missing => (None, None),
+            }
+        } else {
+            (None, None)
         };
 
         let cameras = tool_output
@@ -110,6 +123,10 @@ pub fn parse_camera_inventory(output: &str) -> Vec<CameraDevice> {
 }
 
 fn parse_camera_header(line: &str) -> Option<(usize, String)> {
+    if line.is_empty() || line.starts_with("Available cameras") || line.starts_with('-') {
+        return None;
+    }
+
     if let Some(rest) = line.strip_prefix('[') {
         let (index, rest) = rest.split_once(']')?;
         let index = index.trim().parse().ok()?;

@@ -22,11 +22,12 @@ fn doctor_camera_detected_ready_snapshot() {
             &["--help"],
             CommandOutput::Missing,
         );
+    let output = pi_doctor::doctor::camera::render(&ctx);
 
-    assert_snapshot!(
-        "doctor_camera_ready",
-        pi_doctor::doctor::camera::render(&ctx)
-    );
+    assert!(output.contains("Verdict: camera detected and ready"));
+    assert!(output.contains("tool used: rpicam-hello"));
+    assert!(output.contains("[0] imx219"));
+    assert_snapshot!("doctor_camera_ready", output);
 }
 
 #[test]
@@ -43,11 +44,11 @@ fn doctor_camera_no_cameras_snapshot() {
             CommandOutput::Success("Available cameras\n-----------------\n".to_owned()),
         )
         .with_command_output("libcamera-hello", &["--help"], CommandOutput::Missing);
+    let output = pi_doctor::doctor::camera::render(&ctx);
 
-    assert_snapshot!(
-        "doctor_camera_no_cameras",
-        pi_doctor::doctor::camera::render(&ctx)
-    );
+    assert!(output.contains("Verdict: userspace tools present, no camera detected"));
+    assert!(output.contains("No cameras detected by the available camera tool."));
+    assert_snapshot!("doctor_camera_no_cameras", output);
 }
 
 #[test]
@@ -61,11 +62,11 @@ fn doctor_camera_missing_tools_snapshot() {
             &["--list-cameras"],
             CommandOutput::Missing,
         );
+    let output = pi_doctor::doctor::camera::render(&ctx);
 
-    assert_snapshot!(
-        "doctor_camera_missing_tools",
-        pi_doctor::doctor::camera::render(&ctx)
-    );
+    assert!(output.contains("Verdict: userspace tools missing"));
+    assert!(output.contains("available tools: none"));
+    assert_snapshot!("doctor_camera_missing_tools", output);
 }
 
 fn fixture_ctx(name: &str) -> ProbeContext {

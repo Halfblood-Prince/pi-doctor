@@ -92,11 +92,19 @@ pub fn parse_thermal_millidegrees(raw: &str) -> Result<Option<f32>, ProbeError> 
     if trimmed.is_empty() {
         return Ok(None);
     }
-    let millidegrees: f32 = trimmed.parse().map_err(|_| ProbeError::Parse {
+
+    if let Ok(millidegrees) = trimmed.parse::<f32>() {
+        return Ok(Some(millidegrees / 1000.0));
+    }
+
+    if let Some(celsius) = parse_thermal_celsius_fallback(trimmed) {
+        return Ok(Some(celsius));
+    }
+
+    Err(ProbeError::Parse {
         probe: "thermal",
-        detail: "invalid millidegree value".to_owned(),
-    })?;
-    Ok(Some(millidegrees / 1000.0))
+        detail: "invalid temperature value".to_owned(),
+    })
 }
 
 pub fn classify_temperature(celsius: f32) -> TemperatureBand {
@@ -108,5 +116,28 @@ pub fn classify_temperature(celsius: f32) -> TemperatureBand {
         TemperatureBand::NearThrottle
     } else {
         TemperatureBand::ThrottlingLikely
+    }
+}
+
+fn parse_thermal_celsius_fallback(raw: &str) -> Option<f32> {
+    let normalized = raw.trim().trim_start_matches("temp=").trim();
+    let normalized = normalized
+        .trim_end_matches("'C")
+        .trim_end_matches('C')
+        .trim();
+    normalized.parse::<f32>().ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_thermal_millidegrees;
+
+    #[test]
+    fn parses_celsius_fallback_format() {
+        let parsed = parse_thermal_millidegrees("temp=54.2'C")
+            .expect("temperature should parse")
+            .expect("temperature should exist");
+
+        assert_eq!(parsed, 54.2);
     }
 }

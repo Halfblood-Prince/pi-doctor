@@ -1,0 +1,17 @@
+pi-doctor explain python
+Python environment analysis
+  version: unknown
+  executable: unknown
+  virtual environment: not active
+  externally managed: no
+
+Guidance
+  No active virtual environment detected.
+  Python appears to be running outside a virtual environment.
+
+Exact next commands
+  System Python is not flagged as externally managed, but a venv is still safer for project packages:
+      python3 -m venv .venv
+      . .venv/bin/activate
+  Prefer apt when Raspberry Pi OS already ships the package:
+      sudo apt install python3-picamera2 python3-gpiozero

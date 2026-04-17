@@ -52,6 +52,17 @@ pi-doctor doctor gpio
 pi-doctor support-bundle
 ```
 
+## Documentation
+
+Project documentation lives under `docs/` and is published as an MkDocs site.
+
+Local preview:
+
+```bash
+python -m pip install mkdocs mkdocs-material
+mkdocs serve
+```
+
 ## CLI Contract
 
 Automation should prefer `pi-doctor check --json`. The public CLI guarantees are

@@ -1,0 +1,5 @@
+version=unknown
+executable=unknown
+in_virtualenv=false
+externally_managed=false
+detected_packages=none

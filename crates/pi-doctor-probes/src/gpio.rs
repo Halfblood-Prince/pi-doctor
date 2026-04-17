@@ -22,17 +22,21 @@ pub struct GpioProbe;
 
 impl GpioProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<GpioAnalysis, ProbeError> {
-        let pinctrl_output = ctx.run_command("pinctrl", &["--help"]);
-        let raspi_gpio_output = ctx.run_command("raspi-gpio", &["help"]);
-        let gpioinfo_output = ctx.run_command("gpioinfo", &["--help"]);
-        let gpiodetect_output = ctx.run_command("gpiodetect", &["--help"]);
-        let pinctrl_state = ctx.run_command("pinctrl", &[]);
+        let pinctrl_present = ctx.command_exists("pinctrl");
+        let raspi_gpio_present = ctx.command_exists("raspi-gpio");
+        let gpioinfo_present = ctx.command_exists("gpioinfo");
+        let gpiodetect_present = ctx.command_exists("gpiodetect");
+        let pinctrl_state = if pinctrl_present {
+            ctx.run_command("pinctrl", &[])
+        } else {
+            CommandOutput::Missing
+        };
 
         Ok(GpioAnalysis {
-            pinctrl_present: is_present(&pinctrl_output),
-            raspi_gpio_present: is_present(&raspi_gpio_output),
-            gpioinfo_present: is_present(&gpioinfo_output),
-            gpiodetect_present: is_present(&gpiodetect_output),
+            pinctrl_present,
+            raspi_gpio_present,
+            gpioinfo_present,
+            gpiodetect_present,
             gpiochips: ctx
                 .list_dir("/dev")
                 .into_iter()
@@ -152,10 +156,6 @@ impl Probe for GpioProbe {
     }
 }
 
-fn is_present(output: &CommandOutput) -> bool {
-    !matches!(output, CommandOutput::Missing)
-}
-
 fn config_overlay_hints(ctx: &ProbeContext) -> Vec<String> {
     let analysis = match ConfigTxtProbe.collect(ctx) {
         Ok(analysis) => analysis,
@@ -198,7 +198,7 @@ pub fn parse_pinctrl_functions(output: &str) -> Vec<PinFunction> {
         let Some((gpio_label, function)) = right.split_once('=') else {
             continue;
         };
-        if !gpio_label.contains("GPIO") {
+        if !gpio_label.trim_start().starts_with("GPIO") {
             continue;
         }
 

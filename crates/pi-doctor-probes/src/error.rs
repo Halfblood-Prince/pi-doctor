@@ -1,5 +1,10 @@
-#[derive(Debug, thiserror::Error, Clone)]
+#[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum ProbeError {
+    #[error("missing required field `{field}` for {probe}")]
+    MissingField {
+        probe: &'static str,
+        field: &'static str,
+    },
     #[error("failed to read {path}")]
     ReadText { path: &'static str },
     #[error("failed to run `{program}` with args `{args}`: {detail}")]

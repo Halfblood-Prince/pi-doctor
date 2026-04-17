@@ -17,10 +17,16 @@ impl BoardProbe {
             .read_text("/proc/device-tree/model")
             .map(|raw| raw.trim_matches(char::from(0)).trim().to_owned())
             .filter(|value| !value.is_empty());
-        let cpuinfo = ctx.read_text("/proc/cpuinfo").unwrap_or_default();
-        let revision = cpuinfo_value(&cpuinfo, "Revision");
-        let hardware = cpuinfo_value(&cpuinfo, "Hardware");
-        let model_name = cpuinfo_value(&cpuinfo, "Model");
+        let cpuinfo = ctx.read_text("/proc/cpuinfo");
+        let revision = cpuinfo
+            .as_deref()
+            .and_then(|contents| cpuinfo_value(contents, "Revision"));
+        let hardware = cpuinfo
+            .as_deref()
+            .and_then(|contents| cpuinfo_value(contents, "Hardware"));
+        let model_name = cpuinfo
+            .as_deref()
+            .and_then(|contents| cpuinfo_value(contents, "Model"));
         let is_raspberry_pi = model
             .as_deref()
             .or(model_name.as_deref())
@@ -29,9 +35,10 @@ impl BoardProbe {
                 .as_deref()
                 .is_some_and(|value| value.contains("BCM") || value.contains("Raspberry Pi"));
 
-        if model.is_none() && cpuinfo.trim().is_empty() {
-            return Err(ProbeError::ReadText {
-                path: "/proc/device-tree/model or /proc/cpuinfo",
+        if model.is_none() && cpuinfo.is_none() {
+            return Err(ProbeError::MissingField {
+                probe: "board",
+                field: "/proc/device-tree/model or /proc/cpuinfo",
             });
         }
 

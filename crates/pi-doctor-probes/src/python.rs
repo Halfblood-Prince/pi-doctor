@@ -26,32 +26,54 @@ pub struct PythonProbe;
 
 impl PythonProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<PythonAnalysis, ProbeError> {
-        let version = match ctx.run_command("python3", PYTHON_VERSION_ARGS) {
-            CommandOutput::Success(output) => Some(output.trim().to_owned()),
-            _ => None,
-        };
-        let executable = match ctx.run_command("python3", PYTHON_EXECUTABLE_ARGS) {
-            CommandOutput::Success(output) => Some(output.trim().to_owned()),
-            _ => None,
-        };
-        let in_virtualenv = matches!(
-            ctx.run_command("python3", PYTHON_VENV_ARGS),
-            CommandOutput::Success(output) if output.trim() == "1"
-        );
-
-        let externally_managed = match ctx.run_command("python3", PYTHON_STDLIB_ARGS) {
-            CommandOutput::Success(output) => {
-                let path = format!("{}/EXTERNALLY-MANAGED", output.trim().replace('\\', "/"));
-                ctx.path_exists(path)
+        let python_present = ctx.command_exists("python3");
+        let version = if python_present {
+            match ctx.run_command("python3", PYTHON_VERSION_ARGS) {
+                CommandOutput::Success(output) => normalize_single_line(&output),
+                _ => None,
             }
-            _ => false,
+        } else {
+            None
+        };
+        let executable = if python_present {
+            match ctx.run_command("python3", PYTHON_EXECUTABLE_ARGS) {
+                CommandOutput::Success(output) => normalize_single_line(&output),
+                _ => None,
+            }
+        } else {
+            None
+        };
+        let in_virtualenv = if python_present {
+            matches!(
+                ctx.run_command("python3", PYTHON_VENV_ARGS),
+                CommandOutput::Success(output) if normalize_single_line(&output).as_deref() == Some("1")
+            )
+        } else {
+            false
+        };
+
+        let externally_managed = if python_present {
+            match ctx.run_command("python3", PYTHON_STDLIB_ARGS) {
+                CommandOutput::Success(output) => {
+                    if let Some(stdlib) = normalize_single_line(&output) {
+                        let path = format!("{}/EXTERNALLY-MANAGED", stdlib.replace('\\', "/"));
+                        ctx.path_exists(path)
+                    } else {
+                        false
+                    }
+                }
+                _ => false,
+            }
+        } else {
+            false
         };
 
         let mut detected_packages = Vec::new();
-        if is_dpkg_installed(&ctx.run_command("dpkg-query", DPKG_PICAMERA2_ARGS)) {
+        let dpkg_present = ctx.command_exists("dpkg-query");
+        if dpkg_present && is_dpkg_installed(&ctx.run_command("dpkg-query", DPKG_PICAMERA2_ARGS)) {
             detected_packages.push("python3-picamera2".to_owned());
         }
-        if is_dpkg_installed(&ctx.run_command("dpkg-query", DPKG_GPIOZERO_ARGS)) {
+        if dpkg_present && is_dpkg_installed(&ctx.run_command("dpkg-query", DPKG_GPIOZERO_ARGS)) {
             detected_packages.push("python3-gpiozero".to_owned());
         }
 
@@ -77,7 +99,18 @@ impl Probe for PythonProbe {
 }
 
 fn is_dpkg_installed(output: &CommandOutput) -> bool {
-    matches!(output, CommandOutput::Success(text) if text.contains("install ok installed"))
+    matches!(
+        output,
+        CommandOutput::Success(text) if text.split_whitespace().eq(["install", "ok", "installed"])
+    )
+}
+
+fn normalize_single_line(output: &str) -> Option<String> {
+    output
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+        .map(str::to_owned)
 }
 
 fn python_findings(summary: &PythonSummary) -> Vec<Finding> {

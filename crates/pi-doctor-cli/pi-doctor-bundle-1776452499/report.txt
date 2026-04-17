@@ -1,0 +1,26 @@
+pi-doctor check
+Overall status: warning
+
+System summary
+  Board model: unknown
+  Board revision: unknown
+  Architecture: x86_64
+  Distro: unknown
+  Version: unknown
+  Kernel: unknown
+  Raspberry Pi: no
+
+System findings
+[warning] Host does not look like a Raspberry Pi
+  pi-doctor detected a Linux-like system identity, but it could not confirm Raspberry Pi hardware.
+  evidence: board model: unavailable
+  evidence: board revision: unavailable
+  next: Why this matters: later diagnostics rely on Raspberry Pi-specific firmware and device metadata.
+  next: What to run next: confirm `/proc/device-tree/model` exists on the target Raspberry Pi and rerun `pi-doctor check` there.
+
+Power findings
+[warning] vcgencmd is not available
+  pi-doctor could not read Raspberry Pi firmware throttling telemetry because `vcgencmd` is missing.
+  evidence: command: vcgencmd get_throttled
+  next: Why this matters: undervoltage and firmware throttling signals come from Raspberry Pi firmware telemetry.
+  next: What to run next: verify you are on Raspberry Pi OS or install the Raspberry Pi firmware utilities before rerunning `pi-doctor explain throttling`.

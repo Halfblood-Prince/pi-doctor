@@ -11,12 +11,14 @@ pub struct KernelProbe;
 
 impl KernelProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<KernelDetails, ProbeError> {
-        let cpuinfo = ctx.read_text("/proc/cpuinfo").unwrap_or_default();
+        let cpuinfo = ctx.read_text("/proc/cpuinfo");
         let release = ctx
             .read_text("/proc/sys/kernel/osrelease")
             .map(|value| value.trim().to_owned())
             .filter(|value| !value.is_empty());
-        let architecture = architecture_from_cpuinfo(&cpuinfo)
+        let architecture = cpuinfo
+            .as_deref()
+            .and_then(architecture_from_cpuinfo)
             .or_else(|| {
                 ctx.read_text("/proc/sys/kernel/arch")
                     .map(|value| value.trim().to_owned())
@@ -24,9 +26,10 @@ impl KernelProbe {
             })
             .or_else(|| Some(std::env::consts::ARCH.to_owned()));
 
-        if release.is_none() && cpuinfo.trim().is_empty() {
-            return Err(ProbeError::ReadText {
-                path: "/proc/sys/kernel/osrelease or /proc/cpuinfo",
+        if release.is_none() && cpuinfo.is_none() {
+            return Err(ProbeError::MissingField {
+                probe: "kernel",
+                field: "/proc/sys/kernel/osrelease or /proc/cpuinfo",
             });
         }
 

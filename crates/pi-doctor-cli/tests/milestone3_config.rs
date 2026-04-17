@@ -37,6 +37,9 @@ fn modern_layout_fixture_emits_expected_config_findings() {
 #[test]
 fn explain_config_snapshot() {
     let output = pi_doctor::explain::config::render(&fixture_ctx("modern-layout"));
+    assert!(output.contains("source path: /boot/firmware/config.txt"));
+    assert!(output.contains("Duplicate `dtoverlay` entries detected."));
+    assert!(output.contains("Malformed config.txt line detected."));
     assert_snapshot!("explain_config_modern_layout", output);
 }
 
