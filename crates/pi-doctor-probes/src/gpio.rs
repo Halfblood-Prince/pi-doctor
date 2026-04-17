@@ -51,10 +51,7 @@ impl GpioProbe {
 
 impl Probe for GpioProbe {
     fn run(&self, ctx: &ProbeContext) -> ProbeResult {
-        let analysis = match self.collect(ctx) {
-            Ok(analysis) => analysis,
-            Err(_) => GpioAnalysis::default(),
-        };
+        let analysis = self.collect(ctx).unwrap_or_default();
         let mut findings = Vec::new();
 
         if analysis.pinctrl_present {
