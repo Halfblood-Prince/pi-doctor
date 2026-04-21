@@ -1,7 +1,7 @@
 name: pi-doctor
 base: core22
 version: '1.0'
-summary: Short description of your app
+summary: A CLI tool for diagnosing Raspberry Pi system, camera, GPIO, thermal and Python environment issues
 description: |
   Longer description of your app.
 
