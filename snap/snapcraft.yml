@@ -1,6 +1,6 @@
 name: pi-doctor
 base: core22
-version: '1.0'
+version: git
 summary: Diagnose Raspberry Pi system issues
 description: |
   CLI tool to diagnose Raspberry Pi system, camera, GPIO,
