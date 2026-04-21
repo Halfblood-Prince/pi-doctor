@@ -1,18 +1,30 @@
 name: pi-doctor
 base: core22
 version: '1.0'
-summary: A CLI tool for diagnosing Raspberry Pi system, camera, GPIO, thermal and Python environment issues
+summary: Diagnose Raspberry Pi system issues
 description: |
-  Longer description of your app.
+  CLI tool to diagnose Raspberry Pi system, camera, GPIO,
+  thermal, and Python environment issues.
 
 grade: stable
 confinement: strict
 
 apps:
-  your-app:
-    command: bin/your-executable
+  pi-doctor:
+    command: bin/pi-doctor-cli
+    plugs:
+      - hardware-observe
+      - system-observe
+      - gpio
+      - mount-observe
 
 parts:
-  your-app:
-    plugin: dump
+  pi-doctor:
+    plugin: rust
     source: .
+    build-packages:
+      - pkg-config
+      - libssl-dev
+    override-build: |
+      cargo build --release -p pi-doctor-cli
+      install -Dm755 target/release/pi-doctor-cli $SNAPCRAFT_PART_INSTALL/bin/pi-doctor-cli
