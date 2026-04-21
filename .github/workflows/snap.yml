@@ -1,0 +1,23 @@
+name: Build and publish snap
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build snap
+        uses: snapcore/action-build@v1
+
+      - name: Publish to Snap Store
+        uses: snapcore/action-publish@v1
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          store_login: ${{ secrets.SNAPCRAFT_LOGIN }}
+          release: stable
