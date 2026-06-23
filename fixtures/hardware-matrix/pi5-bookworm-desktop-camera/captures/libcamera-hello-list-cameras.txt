@@ -1,0 +1,4 @@
+Available cameras
+-----------------
+[0] imx708_wide
+    Modes: 'SRGGB10_CSI2P' : 2304x1296 [30.00 fps]

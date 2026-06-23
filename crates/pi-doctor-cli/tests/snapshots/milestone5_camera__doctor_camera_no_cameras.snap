@@ -1,0 +1,16 @@
+---
+source: crates/pi-doctor-cli/tests/milestone5_camera.rs
+expression: "pi_doctor::doctor::camera::render(&ctx)"
+---
+pi-doctor doctor camera
+Verdict: userspace tools present, no camera detected
+  tool used: rpicam-hello
+  available tools: rpicam-hello
+  video devices: video0
+
+Inventory
+  No cameras detected by the available camera tool.
+
+Why this verdict
+  Camera tools are present, but no cameras were detected.
+  Camera tool is present, but no cameras were detected even though video devices exist.

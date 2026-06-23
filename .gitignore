@@ -1,0 +1,14 @@
+/target
+/.idea
+/*.tmp
+/dist
+/pi-doctor-bundle-*
+**/pi-doctor-bundle-*
+/.tmp
+/site
+/debian/.debhelper/
+/debian/debhelper-build-stamp
+/debian/files
+/debian/pi-doctor/
+/debian/*.debhelper.log
+/debian/*.substvars

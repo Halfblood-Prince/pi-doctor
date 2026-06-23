@@ -1,0 +1,6 @@
+# Desktop image with camera and bus overlays
+[all]
+camera_auto_detect=1
+dtoverlay=vc4-kms-v3d
+dtoverlay=i2c0,pins_44_45
+dtparam=i2c_arm=on

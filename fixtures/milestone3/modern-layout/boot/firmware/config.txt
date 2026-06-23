@@ -1,0 +1,8 @@
+# Modern config
+[all]
+dtoverlay=spi0-1cs
+dtoverlay=i2c-gpio
+dtparam=i2c_arm=on
+dtparam=i2c_arm=off
+start_x=1
+not valid

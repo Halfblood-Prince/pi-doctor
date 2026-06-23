@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@ --buildsystem=cargo
+
+override_dh_auto_install:
+	set -eu; \
+	binary="$$(find target -type f -name pi-doctor -path '*/debug/pi-doctor' -perm /111 | head -n 1)"; \
+	test -n "$$binary"; \
+	install -D -m 0755 "$$binary" debian/pi-doctor/usr/bin/pi-doctor

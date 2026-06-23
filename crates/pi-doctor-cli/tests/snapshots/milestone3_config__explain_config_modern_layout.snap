@@ -1,0 +1,33 @@
+---
+source: crates/pi-doctor-cli/tests/milestone3_config.rs
+expression: output
+---
+pi-doctor explain config
+Boot configuration analysis
+  source path: /boot/firmware/config.txt
+  layout: modern /boot/firmware layout
+  diagnostics: 5
+  legacy /boot/config.txt also exists
+
+Findings
+  Duplicate `dtoverlay` entries detected.
+  `dtoverlay` appears multiple times in config.txt, which can make the effective boot configuration harder to reason about.
+  Evidence: lines: 3, 4
+  Duplicate `dtparam` entries detected.
+  `dtparam` appears multiple times in config.txt, which can make the effective boot configuration harder to reason about.
+  Evidence: lines: 5, 6
+  `start_x` looks like a legacy boot option.
+  `start_x` is commonly associated with older Raspberry Pi boot or camera guidance and may not be needed on current Raspberry Pi OS releases.
+  Evidence: line 7: start_x=1
+  Malformed config.txt line detected.
+  A config.txt line could not be parsed as a section, comment, or key=value setting.
+  Evidence: line 8: not valid
+  Legacy /boot/config.txt is present alongside the modern config path.
+  This system appears to use /boot/firmware/config.txt, but /boot/config.txt also exists and may be the wrong file to edit.
+  Evidence: active config path: /boot/firmware/config.txt
+  Evidence: legacy config path detected: /boot/config.txt
+
+Parsed keys
+  dtoverlay: lines 3, 4
+  dtparam: lines 5, 6
+  start_x: lines 7

@@ -1,0 +1,37 @@
+Source: pi-doctor
+Section: utils
+Priority: optional
+Maintainer: Halfblood-Prince <147537283+Halfblood-Prince@users.noreply.github.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-cargo,
+ cargo,
+ rustc,
+ librust-anyhow-dev,
+ librust-clap-4+derive-dev,
+ librust-clap-4+std-dev,
+ librust-clap-complete-dev,
+ librust-env-logger-dev,
+ librust-log-dev,
+ librust-serde-1+derive-dev,
+ librust-serde-json-dev,
+ librust-thiserror-dev,
+ librust-insta-1+glob-dev <!nocheck>
+Standards-Version: 4.7.4.1
+Rules-Requires-Root: no
+Homepage: https://github.com/Halfblood-Prince/pi-doctor
+Vcs-Git: https://github.com/Halfblood-Prince/pi-doctor.git
+Vcs-Browser: https://github.com/Halfblood-Prince/pi-doctor
+Testsuite: autopkgtest-pkg-rust
+
+Package: pi-doctor
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: read-only Raspberry Pi diagnostics
+ pi-doctor is a command-line diagnostic tool for Raspberry Pi systems. It
+ checks board identity, kernel and OS metadata, firmware throttling signals,
+ thermal state, boot config drift, GPIO tool availability, camera detection,
+ and Python environment pitfalls.
+ .
+ The tool is read-only and can emit stable JSON for automation or human output
+ for interactive troubleshooting.

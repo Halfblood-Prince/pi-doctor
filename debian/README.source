@@ -1,0 +1,20 @@
+pi-doctor for Debian
+====================
+
+This source package builds the `pi-doctor` Rust workspace binary from the
+repository root.
+
+The upstream source intentionally excludes generated support bundles, local
+build products, release archives, documentation site output, and temporary
+directories. Those paths are listed in `debian/copyright` and guarded again by
+`debian/source/options`.
+
+Before uploading to mentors.debian.net:
+
+* File an ITP bug against the `wnpp` pseudo-package and add the real
+  `Closes: #NNNNNN` entry to `debian/changelog`.
+* Build the source package with `dpkg-buildpackage -S -sa`.
+* Build the binary package in a clean unstable chroot with `sbuild` or `pbuilder`.
+* Run `lintian --pedantic` on the `.changes` file.
+* Run `autopkgtest` against the built source or `.changes` file.
+* Sign the upload with the GPG key configured on mentors.debian.net.

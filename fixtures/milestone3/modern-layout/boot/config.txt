@@ -1,0 +1,2 @@
+# legacy config path
+dtoverlay=vc4-kms-v3d

@@ -1,0 +1,19 @@
+class PiDoctor < Formula
+  desc "Human-first Raspberry Pi diagnostics"
+  homepage "@HOMEPAGE@"
+  url "@URL@"
+  sha256 "@SHA256@"
+  license "Apache-2.0"
+  version "@VERSION@"
+
+  def install
+    bin.install "pi-doctor"
+    bash_completion.install "completions/pi-doctor.bash" => "pi-doctor"
+    zsh_completion.install "completions/_pi-doctor"
+    fish_completion.install "completions/pi-doctor.fish"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/pi-doctor --version")
+  end
+end

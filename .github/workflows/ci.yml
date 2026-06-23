@@ -1,0 +1,215 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt
+        run: cargo fmt --all --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  unit:
+    name: unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Rust unit tests
+        run: cargo test --workspace --lib --bins --locked
+
+  subsystem:
+    name: subsystem tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Probe and report fixture tests
+        run: |
+          cargo test -p pi-doctor-probes --test hardware_matrix --locked
+          cargo test -p pi-doctor-report --test json_schema --locked
+
+      - name: CLI fixture and contract tests
+        run: |
+          cargo test -p pi-doctor --test cli_contract --locked
+          cargo test -p pi-doctor --test hardware_matrix --locked
+          cargo test -p pi-doctor --test milestone1_fixtures --locked
+          cargo test -p pi-doctor --test milestone2_explain --locked
+          cargo test -p pi-doctor --test milestone3_config --locked
+          cargo test -p pi-doctor --test milestone4_gpio --locked
+          cargo test -p pi-doctor --test milestone5_camera --locked
+          cargo test -p pi-doctor --test milestone6_python --locked
+          cargo test -p pi-doctor --test milestone7_rollup --locked
+
+  system:
+    name: system tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Binary snapshot tests
+        run: cargo test -p pi-doctor --test cli_snapshots --locked
+
+      - name: Live host smoke tests
+        run: cargo test -p pi-doctor --test live_integration --locked -- --ignored
+
+      - name: Build release binary
+        run: cargo build -p pi-doctor --release --locked
+
+      - name: Installed CLI JSON contract smoke
+        run: |
+          ./target/release/pi-doctor --version
+          ./target/release/pi-doctor --help | grep -q "Run the full diagnostic probe set"
+
+          set +e
+          ./target/release/pi-doctor --json check > check.json
+          status=$?
+          set -e
+
+          case "$status" in
+            0|1|2|3) ;;
+            *)
+              echo "unexpected check status: $status" >&2
+              exit 1
+              ;;
+          esac
+
+          python3 - <<'PY'
+          import json
+
+          with open("check.json", encoding="utf-8") as handle:
+              report = json.load(handle)
+
+          required = {
+              "metadata",
+              "schema_version",
+              "overall_status",
+              "system",
+              "config",
+              "camera",
+              "python",
+              "groups",
+              "findings",
+          }
+          missing = sorted(required.difference(report))
+          if missing:
+              raise SystemExit(f"missing top-level keys: {missing}")
+          if report["metadata"].get("command") != "check":
+              raise SystemExit("metadata.command should be check")
+          if report["schema_version"] != "1.0.0":
+              raise SystemExit("schema_version should be 1.0.0")
+          PY
+
+      - name: Release archive install smoke
+        run: |
+          chmod +x scripts/package-release.sh scripts/install.sh
+          scripts/package-release.sh \
+            --target x86_64-unknown-linux-gnu \
+            --binary target/release/pi-doctor
+          mkdir -p .tmp/bin
+          archive="$(ls dist/*.tar.gz)"
+          scripts/install.sh \
+            --archive "$archive" \
+            --bin-dir "$PWD/.tmp/bin"
+          "$PWD/.tmp/bin/pi-doctor" --version
+
+  target-matrix:
+    name: target check (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - armv7-unknown-linux-gnueabihf
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check
+        run: cargo check --workspace --target ${{ matrix.target }} --locked
+
+  debian-package:
+    name: Debian package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and test Debian package
+        run: |
+          chmod +x debian/rules debian/tests/smoke scripts/*.sh
+          docker run --rm -v "$PWD:/src" -w /src debian:unstable-slim sh -euxc '
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y --no-install-recommends \
+              ca-certificates \
+              build-essential \
+              devscripts \
+              equivs \
+              lintian \
+              autopkgtest
+            mk-build-deps --install --remove --tool "apt-get -y --no-install-recommends" debian/control
+            dpkg-buildpackage -us -uc -b
+            lintian --pedantic --fail-on error ../pi-doctor_*.changes
+            autopkgtest ../pi-doctor_*.changes -- null
+          '

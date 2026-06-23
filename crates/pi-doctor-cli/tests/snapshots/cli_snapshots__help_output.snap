@@ -1,0 +1,24 @@
+---
+source: crates/pi-doctor-cli/tests/cli_snapshots.rs
+assertion_line: 6
+expression: "normalize(binary_output(&[\"--help\"], &[0]))"
+---
+Human-first Raspberry Pi diagnostics
+
+Usage: pi-doctor [OPTIONS] <COMMAND>
+
+Commands:
+  check           Run the full diagnostic probe set
+  explain         Explain a Raspberry Pi diagnostic topic
+  support-bundle  Create a support bundle with reports and raw captures
+  doctor          Run a focused diagnostic doctor
+  completions     Generate shell completions
+  help            Print this message or the help of the given subcommand(s)
+
+Options:
+      --json      
+      --quiet     
+      --verbose   
+      --no-color  
+  -h, --help      Print help
+  -V, --version   Print version

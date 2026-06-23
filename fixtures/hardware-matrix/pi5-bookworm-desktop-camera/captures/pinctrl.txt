@@ -1,0 +1,4 @@
+18: a3 pd | hi // GPIO18 = PWM0_CHAN2
+19: no pd | lo // GPIO19 = NONE
+44: a5 pu | hi // GPIO44 = SDA0
+45: a5 pu | hi // GPIO45 = SCL0

@@ -1,0 +1,14 @@
+[package]
+name = "pi-doctor-bundle"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description.workspace = true
+
+[dependencies]
+pi-doctor-core = { path = "../pi-doctor-core" }
+pi-doctor-report = { path = "../pi-doctor-report" }
+serde_json.workspace = true
+thiserror.workspace = true

@@ -1,0 +1,17 @@
+---
+source: crates/pi-doctor-cli/tests/milestone5_camera.rs
+expression: "pi_doctor::doctor::camera::render(&ctx)"
+---
+pi-doctor doctor camera
+Verdict: camera detected and ready
+  tool used: rpicam-hello
+  available tools: rpicam-hello
+  video devices: video0
+
+Inventory
+  [0] imx219
+      /base/soc/i2c0mux/i2c@1/imx219@10
+
+Why this verdict
+  Camera detected and ready.
+  1 camera(s) detected via rpicam-hello.

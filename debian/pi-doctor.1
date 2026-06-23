@@ -1,0 +1,66 @@
+.TH PI-DOCTOR 1 "June 2026" "pi-doctor 0.1.0" "User Commands"
+.SH NAME
+pi-doctor \- read-only Raspberry Pi diagnostics
+.SH SYNOPSIS
+.B pi-doctor
+.RI [ OPTIONS ]
+.I COMMAND
+.SH DESCRIPTION
+.B pi-doctor
+checks common Raspberry Pi support issues without changing the host system. It
+reports board identity, kernel and distribution metadata, firmware throttling
+signals, thermal state, boot configuration drift, GPIO tooling, camera
+detection, and Python environment state.
+.SH COMMANDS
+.TP
+.B check
+Run the full diagnostic probe set.
+.TP
+.B explain throttling
+Explain firmware throttling and thermal diagnostics.
+.TP
+.B explain config
+Explain Raspberry Pi boot configuration diagnostics.
+.TP
+.B explain python
+Explain Python environment diagnostics.
+.TP
+.B doctor camera
+Run focused camera diagnostics.
+.TP
+.B doctor gpio
+Run focused GPIO diagnostics.
+.TP
+.B support-bundle
+Create a redacted diagnostic bundle in the current directory.
+.TP
+.B completions SHELL
+Generate shell completion scripts.
+.SH OPTIONS
+.TP
+.B --json
+Emit JSON output for
+.B check.
+.TP
+.B --quiet
+Use compact human output.
+.TP
+.B --verbose
+Use verbose human output.
+.TP
+.B --no-color
+Disable color in human output.
+.TP
+.B -h, --help
+Show command help.
+.TP
+.B -V, --version
+Show the package version.
+.SH EXIT STATUS
+The
+.B check
+command exits with 0 for healthy, 1 for warning, 2 for degraded, and 3 for
+critical status. Unexpected runtime failures exit with 4.
+.SH SEE ALSO
+Project documentation is installed under
+.IR /usr/share/doc/pi-doctor/ .

@@ -1,0 +1,18 @@
+---
+source: crates/pi-doctor-cli/tests/milestone7_rollup.rs
+expression: "pi_doctor_report::human::render(&report)"
+---
+pi-doctor check
+Overall status: degraded
+
+Power findings
+[warning] Under-voltage is active now
+  Firmware telemetry reports an active under-voltage condition.
+
+Thermal findings
+[warning] CPU temperature is near throttling range
+  CPU temperature is 78.2 C, which is close to the Raspberry Pi throttling threshold.
+
+Config findings
+[warning] Legacy /boot/config.txt is present alongside the modern config path
+  This system appears to use /boot/firmware/config.txt, but /boot/config.txt also exists.

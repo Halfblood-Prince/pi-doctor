@@ -1,0 +1,57 @@
+#!/bin/sh
+set -eu
+
+tmp="${AUTOPKGTEST_TMP:-$(mktemp -d)}"
+if [ -z "${AUTOPKGTEST_TMP:-}" ]; then
+    trap 'rm -rf "$tmp"' EXIT
+fi
+
+pi-doctor --version
+pi-doctor --help > "$tmp/help.txt"
+grep -q "Run the full diagnostic probe set" "$tmp/help.txt"
+
+set +e
+pi-doctor --json check > "$tmp/check.json" 2> "$tmp/check.stderr"
+status=$?
+set -e
+
+case "$status" in
+    0|1|2|3) ;;
+    *)
+        echo "unexpected pi-doctor check exit status: $status" >&2
+        cat "$tmp/check.stderr" >&2
+        exit 1
+        ;;
+esac
+
+python3 - "$tmp/check.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    report = json.load(handle)
+
+required = {
+    "metadata",
+    "schema_version",
+    "overall_status",
+    "system",
+    "config",
+    "camera",
+    "python",
+    "groups",
+    "findings",
+}
+missing = sorted(required.difference(report))
+if missing:
+    raise SystemExit(f"missing top-level JSON keys: {', '.join(missing)}")
+
+if report["schema_version"] != "1.0.0":
+    raise SystemExit(f"unexpected schema version: {report['schema_version']}")
+
+if report["metadata"].get("command") != "check":
+    raise SystemExit("metadata.command should be check")
+
+if not isinstance(report["findings"], list):
+    raise SystemExit("findings should be an array")
+PY
