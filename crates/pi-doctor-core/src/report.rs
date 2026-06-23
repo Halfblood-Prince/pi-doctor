@@ -6,6 +6,7 @@ pub struct Report {
     pub metadata: ReportMetadata,
     pub schema_version: &'static str,
     pub overall_status: OverallStatus,
+    pub probe_health: Vec<ProbeHealth>,
     pub system: Option<SystemSummary>,
     pub config: Option<ConfigSummary>,
     pub camera: Option<CameraSummary>,
@@ -26,6 +27,24 @@ pub enum OverallStatus {
     Warning,
     Degraded,
     Critical,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ProbeHealth {
+    pub name: &'static str,
+    pub outcome: ProbeOutcome,
+    pub detail: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProbeOutcome {
+    Success,
+    Unavailable,
+    PermissionDenied,
+    CommandFailed,
+    ParseFailed,
+    TimedOut,
 }
 
 #[derive(Debug, Clone, Serialize)]

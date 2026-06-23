@@ -2,7 +2,7 @@
 
 See also [CLI Contract](cli-contract.md) for the broader compatibility promise.
 
-`pi-doctor check` uses severity-based exit codes:
+`pi-doctor check` uses impact-based exit codes:
 
 - `0`: healthy
 - `1`: warning
@@ -14,5 +14,7 @@ Notes:
 
 - `explain`, `doctor`, `support-bundle`, and `completions` return `0` on success.
 - Internal CLI failures return `4`.
+- `critical` is used for release-blocking conditions such as active firmware throttling
+  or temperatures in the likely-throttling range.
 - Exit codes are the stable machine-facing summary for `check`, but automation that
   needs detail should prefer `pi-doctor check --json`.

@@ -247,6 +247,7 @@ mod tests {
             },
             schema_version: "1.0.0",
             overall_status: OverallStatus::Healthy,
+            probe_health: Vec::new(),
             system: None,
             config: None,
             camera: None,

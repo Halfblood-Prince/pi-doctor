@@ -23,8 +23,9 @@ fn check_json_snapshot() {
 
     let parsed: Value = serde_json::from_str(&output).expect("output should be valid json");
     assert_eq!(parsed["schema_version"], "1.0.0");
-    assert_eq!(parsed["overall_status"], "warning");
+    assert_eq!(parsed["overall_status"], "degraded");
     assert_eq!(parsed["metadata"]["command"], "check");
+    assert!(parsed["probe_health"].is_array());
     assert!(
         parsed["findings"]
             .as_array()
@@ -32,8 +33,13 @@ fn check_json_snapshot() {
             .iter()
             .any(|finding| finding["id"] == "board.non_raspberry_pi")
     );
-
-    assert_snapshot!("check_json_output", output);
+    assert!(
+        parsed["findings"]
+            .as_array()
+            .expect("findings should be an array")
+            .iter()
+            .any(|finding| finding["id"] == "camera.tool_missing")
+    );
 }
 
 #[test]

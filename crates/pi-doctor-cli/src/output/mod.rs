@@ -90,7 +90,8 @@ pub fn render_report(report: &Report, settings: RenderSettings) -> anyhow::Resul
 mod tests {
     use super::{ColorPolicy, OutputMode, RenderSettings, Verbosity, render_report};
     use pi_doctor_core::{
-        Finding, FindingDomain, FindingGroup, OverallStatus, Report, ReportMetadata, Severity,
+        Finding, FindingDomain, FindingGroup, Impact, OverallStatus, Report, ReportMetadata,
+        Severity,
     };
 
     #[test]
@@ -163,6 +164,7 @@ mod tests {
             },
             schema_version: "1.0.0",
             overall_status: OverallStatus::Healthy,
+            probe_health: Vec::new(),
             system: None,
             config: None,
             camera: None,
@@ -176,6 +178,7 @@ mod tests {
         let finding = Finding {
             id: "thermal.near_throttle",
             severity: Severity::Warning,
+            impact: Impact::Warning,
             title: "CPU temperature is near throttling range".to_owned(),
             summary: "CPU temperature is 78.2 C.".to_owned(),
             evidence: vec!["temperature classification: near throttle".to_owned()],
@@ -188,6 +191,7 @@ mod tests {
             },
             schema_version: "1.0.0",
             overall_status: OverallStatus::Warning,
+            probe_health: Vec::new(),
             system: None,
             config: None,
             camera: None,

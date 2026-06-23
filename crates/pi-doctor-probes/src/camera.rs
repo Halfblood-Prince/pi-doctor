@@ -1,7 +1,8 @@
 use crate::ProbeError;
 use log::{debug, warn};
 use pi_doctor_core::{
-    CameraDevice, CameraSummary, CommandOutput, Finding, Probe, ProbeContext, ProbeResult, Severity,
+    CameraDevice, CameraSummary, CommandOutput, Finding, Impact, Probe, ProbeContext, ProbeResult,
+    Severity,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -22,32 +23,7 @@ impl CameraProbe {
             .filter(|name| name.starts_with("video"))
             .collect::<Vec<_>>();
 
-        let (tool_used, tool_output) = if rpicam_present {
-            match ctx.run_command("rpicam-hello", &["--list-cameras"]) {
-                CommandOutput::Success(output) => (Some("rpicam-hello".to_owned()), Some(output)),
-                CommandOutput::Failure(_) | CommandOutput::Missing => {
-                    if libcamera_present {
-                        match ctx.run_command("libcamera-hello", &["--list-cameras"]) {
-                            CommandOutput::Success(output) => {
-                                (Some("libcamera-hello".to_owned()), Some(output))
-                            }
-                            CommandOutput::Failure(_) | CommandOutput::Missing => (None, None),
-                        }
-                    } else {
-                        (None, None)
-                    }
-                }
-            }
-        } else if libcamera_present {
-            match ctx.run_command("libcamera-hello", &["--list-cameras"]) {
-                CommandOutput::Success(output) => {
-                    (Some("libcamera-hello".to_owned()), Some(output))
-                }
-                CommandOutput::Failure(_) | CommandOutput::Missing => (None, None),
-            }
-        } else {
-            (None, None)
-        };
+        let (tool_used, tool_output) = camera_inventory(ctx, rpicam_present, libcamera_present)?;
 
         let cameras = tool_output
             .as_deref()
@@ -68,6 +44,55 @@ impl CameraProbe {
         let findings = camera_findings(&summary);
 
         Ok(CameraAnalysis { summary, findings })
+    }
+}
+
+fn camera_inventory(
+    ctx: &ProbeContext,
+    rpicam_present: bool,
+    libcamera_present: bool,
+) -> Result<(Option<String>, Option<String>), ProbeError> {
+    let mut first_error = None;
+
+    if rpicam_present {
+        match run_inventory_command(ctx, "rpicam-hello") {
+            Ok(output) => return Ok((Some("rpicam-hello".to_owned()), Some(output))),
+            Err(error) => first_error = Some(error),
+        }
+    }
+
+    if libcamera_present {
+        match run_inventory_command(ctx, "libcamera-hello") {
+            Ok(output) => return Ok((Some("libcamera-hello".to_owned()), Some(output))),
+            Err(error) if first_error.is_none() => first_error = Some(error),
+            Err(_) => {}
+        }
+    }
+
+    if let Some(error) = first_error {
+        Err(error)
+    } else {
+        Ok((None, None))
+    }
+}
+
+fn run_inventory_command(ctx: &ProbeContext, program: &'static str) -> Result<String, ProbeError> {
+    match ctx.run_command(program, &["--list-cameras"]) {
+        CommandOutput::Success(output) => Ok(output),
+        CommandOutput::Missing => Err(ProbeError::MissingTool { program }),
+        CommandOutput::Failure(detail) => Err(ProbeError::CommandFailure {
+            program,
+            args: "--list-cameras".to_owned(),
+            detail,
+        }),
+        CommandOutput::TimedOut => Err(ProbeError::CommandTimedOut {
+            program,
+            args: "--list-cameras".to_owned(),
+        }),
+        CommandOutput::OutputLimitExceeded => Err(ProbeError::CommandOutputLimit {
+            program,
+            args: "--list-cameras".to_owned(),
+        }),
     }
 }
 
@@ -163,6 +188,7 @@ fn camera_findings(summary: &CameraSummary) -> Vec<Finding> {
         return vec![Finding {
             id: "camera.tool_missing",
             severity: Severity::Warning,
+            impact: Impact::Degraded,
             title: "Camera userspace tools are missing".to_owned(),
             summary: "Neither `rpicam-hello` nor `libcamera-hello` appears to be available, so pi-doctor cannot query camera inventory.".to_owned(),
             evidence: vec!["tools checked: rpicam-hello, libcamera-hello".to_owned()],
@@ -183,6 +209,7 @@ fn camera_findings(summary: &CameraSummary) -> Vec<Finding> {
         return vec![Finding {
             id: "camera.no_cameras_detected",
             severity: Severity::Warning,
+            impact: Impact::Degraded,
             title: "Camera tools are present, but no cameras were detected".to_owned(),
             summary: summary_text.to_owned(),
             evidence: vec![format!(
@@ -200,6 +227,7 @@ fn camera_findings(summary: &CameraSummary) -> Vec<Finding> {
     findings.push(Finding {
         id: "camera.detected_ready",
         severity: Severity::Info,
+        impact: Impact::Info,
         title: if summary.cameras.len() == 1 {
             "Camera detected and ready".to_owned()
         } else {

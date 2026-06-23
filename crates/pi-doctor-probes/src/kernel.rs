@@ -1,4 +1,4 @@
-use crate::ProbeError;
+use crate::{ProbeError, read_optional_text};
 use pi_doctor_core::{Probe, ProbeContext, ProbeResult};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -11,16 +11,17 @@ pub struct KernelProbe;
 
 impl KernelProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<KernelDetails, ProbeError> {
-        let cpuinfo = ctx.read_text("/proc/cpuinfo");
-        let release = ctx
-            .read_text("/proc/sys/kernel/osrelease")
+        let cpuinfo = read_optional_text(ctx, "/proc/cpuinfo")?;
+        let release = read_optional_text(ctx, "/proc/sys/kernel/osrelease")?
             .map(|value| value.trim().to_owned())
             .filter(|value| !value.is_empty());
+        let arch_file = read_optional_text(ctx, "/proc/sys/kernel/arch")?;
         let architecture = cpuinfo
             .as_deref()
             .and_then(architecture_from_cpuinfo)
             .or_else(|| {
-                ctx.read_text("/proc/sys/kernel/arch")
+                arch_file
+                    .as_deref()
                     .map(|value| value.trim().to_owned())
                     .filter(|value| !value.is_empty())
             })

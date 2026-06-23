@@ -1,5 +1,5 @@
 use crate::{ProbeError, config_txt::ConfigTxtProbe};
-use pi_doctor_core::{CommandOutput, Finding, Probe, ProbeContext, ProbeResult, Severity};
+use pi_doctor_core::{CommandOutput, Finding, Impact, Probe, ProbeContext, ProbeResult, Severity};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct GpioAnalysis {
@@ -47,7 +47,9 @@ impl GpioProbe {
                 CommandOutput::Success(output) | CommandOutput::Failure(output) => {
                     parse_pinctrl_functions(&output)
                 }
-                CommandOutput::Missing => Vec::new(),
+                CommandOutput::Missing
+                | CommandOutput::TimedOut
+                | CommandOutput::OutputLimitExceeded => Vec::new(),
             },
         })
     }
@@ -62,6 +64,7 @@ impl Probe for GpioProbe {
             findings.push(Finding {
                 id: "gpio.pinctrl_present",
                 severity: Severity::Info,
+                impact: Impact::Info,
                 title: "Use pinctrl for hardware-state inspection".to_owned(),
                 summary: "The `pinctrl` tool is available for Raspberry Pi-specific pin state inspection.".to_owned(),
                 evidence: vec!["tool detected: pinctrl".to_owned()],
@@ -76,6 +79,7 @@ impl Probe for GpioProbe {
             findings.push(Finding {
                 id: "gpio.raspi_gpio_deprecated",
                 severity: Severity::Warning,
+                impact: Impact::Warning,
                 title: "`raspi-gpio` is present but deprecated".to_owned(),
                 summary: "`raspi-gpio` still exists on this system, but newer Raspberry Pi guidance favors `pinctrl`.".to_owned(),
                 evidence: vec!["tool detected: raspi-gpio".to_owned()],
@@ -90,6 +94,7 @@ impl Probe for GpioProbe {
             findings.push(Finding {
                 id: "gpio.libgpiod_present",
                 severity: Severity::Info,
+                impact: Impact::Info,
                 title: "Use libgpiod for generic Linux GPIO line work".to_owned(),
                 summary: "At least one libgpiod CLI tool is available for userspace GPIO line inspection.".to_owned(),
                 evidence: vec![format!(
@@ -114,6 +119,7 @@ impl Probe for GpioProbe {
             findings.push(Finding {
                 id: "gpio.no_libgpiod_tools",
                 severity: Severity::Warning,
+                impact: Impact::Warning,
                 title: "No libgpiod GPIO CLI tools were detected".to_owned(),
                 summary: "Neither `gpioinfo` nor `gpiodetect` appears to be available on this system.".to_owned(),
                 evidence: vec!["tools missing: gpioinfo, gpiodetect".to_owned()],
@@ -128,6 +134,7 @@ impl Probe for GpioProbe {
             findings.push(Finding {
                 id: "gpio.overlay_claims_bus",
                 severity: Severity::Warning,
+                impact: Impact::Warning,
                 title: "An overlay likely claims a GPIO-backed peripheral".to_owned(),
                 summary: format!("The boot config suggests `{hint}` may already enable a bus or peripheral."),
                 evidence: vec![format!("overlay hint: {hint}")],
@@ -142,6 +149,7 @@ impl Probe for GpioProbe {
             findings.push(Finding {
                 id: "gpio.pin_owned_by_alt_function",
                 severity: Severity::Warning,
+                impact: Impact::Warning,
                 title: format!("GPIO{} appears owned by {}", pin.pin, pin.function),
                 summary: "The current pinctrl output suggests at least one pin is already muxed to an alternate hardware function.".to_owned(),
                 evidence: vec![format!("GPIO{} = {}", pin.pin, pin.function)],

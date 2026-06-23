@@ -47,6 +47,7 @@ sudo apt install ../pi-doctor_0.1.0-1_*.deb
 ```bash
 pi-doctor check
 pi-doctor --json check
+pi-doctor --timeout 5 check
 pi-doctor explain throttling
 pi-doctor doctor gpio
 pi-doctor support-bundle

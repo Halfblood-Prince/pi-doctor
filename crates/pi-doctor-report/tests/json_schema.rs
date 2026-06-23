@@ -1,7 +1,7 @@
 use pi_doctor_core::{
     CameraDevice, CameraSummary, ConfigEntry, ConfigEntryKind, ConfigSummary, Finding,
-    FindingDomain, FindingGroup, OverallStatus, PythonSummary, Report, ReportMetadata, Severity,
-    SystemSummary,
+    FindingDomain, FindingGroup, Impact, OverallStatus, ProbeHealth, ProbeOutcome, PythonSummary,
+    Report, ReportMetadata, Severity, SystemSummary,
 };
 use serde_json::Value;
 
@@ -24,6 +24,7 @@ fn emitted_json_matches_documented_schema_structure() {
             "groups",
             "metadata",
             "overall_status",
+            "probe_health",
             "python",
             "schema_version",
             "system",
@@ -33,6 +34,8 @@ fn emitted_json_matches_documented_schema_structure() {
     assert_eq!(value["metadata"]["command"], "check");
     assert_eq!(value["schema_version"], "1.0.0");
     assert_eq!(value["overall_status"], "degraded");
+    assert_eq!(value["probe_health"][0]["name"], "board");
+    assert_eq!(value["probe_health"][0]["outcome"], "success");
 
     assert_eq!(value["system"]["board_model"], "Raspberry Pi 5");
     assert_eq!(value["system"]["is_raspberry_pi"], true);
@@ -76,24 +79,28 @@ fn emitted_json_matches_documented_schema_structure() {
         ]
     );
     assert_eq!(value["findings"][0]["severity"], "warning");
+    assert_eq!(value["findings"][0]["impact"], "degraded");
 }
 
 fn sample_report() -> Report {
     let config_finding = finding(
         "config_txt.stale_legacy_path",
         Severity::Warning,
+        Impact::Warning,
         "Legacy /boot/config.txt is present alongside the modern config path",
         "This system appears to use /boot/firmware/config.txt, but /boot/config.txt also exists.",
     );
     let thermal_finding = finding(
         "thermal.near_throttle",
         Severity::Warning,
+        Impact::Warning,
         "CPU temperature is near throttling range",
         "CPU temperature is 78.2 C, which is close to the Raspberry Pi throttling threshold.",
     );
     let power_finding = finding(
         "throttling.undervoltage_now",
         Severity::Warning,
+        Impact::Degraded,
         "Under-voltage is active now",
         "Firmware telemetry reports an active under-voltage condition.",
     );
@@ -104,6 +111,11 @@ fn sample_report() -> Report {
         },
         schema_version: "1.0.0",
         overall_status: OverallStatus::Degraded,
+        probe_health: vec![ProbeHealth {
+            name: "board",
+            outcome: ProbeOutcome::Success,
+            detail: None,
+        }],
         system: Some(SystemSummary {
             board_model: Some("Raspberry Pi 5".to_owned()),
             board_revision: Some("c04170".to_owned()),
@@ -165,10 +177,17 @@ fn sample_report() -> Report {
     }
 }
 
-fn finding(id: &'static str, severity: Severity, title: &str, summary: &str) -> Finding {
+fn finding(
+    id: &'static str,
+    severity: Severity,
+    impact: Impact,
+    title: &str,
+    summary: &str,
+) -> Finding {
     Finding {
         id,
         severity,
+        impact,
         title: title.to_owned(),
         summary: summary.to_owned(),
         evidence: Vec::new(),

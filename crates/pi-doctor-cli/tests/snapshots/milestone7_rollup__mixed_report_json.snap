@@ -8,6 +8,7 @@ expression: json
   },
   "schema_version": "1.0.0",
   "overall_status": "degraded",
+  "probe_health": [],
   "system": null,
   "config": null,
   "camera": null,
@@ -19,6 +20,7 @@ expression: json
         {
           "id": "throttling.undervoltage_now",
           "severity": "warning",
+          "impact": "degraded",
           "title": "Under-voltage is active now",
           "summary": "Firmware telemetry reports an active under-voltage condition.",
           "evidence": [],
@@ -32,6 +34,7 @@ expression: json
         {
           "id": "thermal.near_throttle",
           "severity": "warning",
+          "impact": "warning",
           "title": "CPU temperature is near throttling range",
           "summary": "CPU temperature is 78.2 C, which is close to the Raspberry Pi throttling threshold.",
           "evidence": [],
@@ -45,6 +48,7 @@ expression: json
         {
           "id": "config_txt.stale_legacy_path",
           "severity": "warning",
+          "impact": "warning",
           "title": "Legacy /boot/config.txt is present alongside the modern config path",
           "summary": "This system appears to use /boot/firmware/config.txt, but /boot/config.txt also exists.",
           "evidence": [],
@@ -57,6 +61,7 @@ expression: json
     {
       "id": "throttling.undervoltage_now",
       "severity": "warning",
+      "impact": "degraded",
       "title": "Under-voltage is active now",
       "summary": "Firmware telemetry reports an active under-voltage condition.",
       "evidence": [],
@@ -65,6 +70,7 @@ expression: json
     {
       "id": "thermal.near_throttle",
       "severity": "warning",
+      "impact": "warning",
       "title": "CPU temperature is near throttling range",
       "summary": "CPU temperature is 78.2 C, which is close to the Raspberry Pi throttling threshold.",
       "evidence": [],
@@ -73,6 +79,7 @@ expression: json
     {
       "id": "config_txt.stale_legacy_path",
       "severity": "warning",
+      "impact": "warning",
       "title": "Legacy /boot/config.txt is present alongside the modern config path",
       "summary": "This system appears to use /boot/firmware/config.txt, but /boot/config.txt also exists.",
       "evidence": [],

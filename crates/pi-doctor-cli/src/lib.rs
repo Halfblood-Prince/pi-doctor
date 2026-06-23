@@ -10,14 +10,22 @@ use cli::args::{Cli, Commands, DoctorTarget, ExplainTopic};
 use log::warn;
 use pi_doctor_bundle::{BundleInput, write_bundle};
 use pi_doctor_core::{
-    CameraSummary, Finding, FindingDomain, FindingGroup, OverallStatus, Probe, ProbeContext,
-    Report, ReportMetadata, SystemSummary,
+    CameraSummary, Finding, FindingDomain, FindingGroup, Impact, OverallStatus, ProbeContext,
+    ProbeHealth, ProbeOutcome, Report, ReportMetadata, Severity, SystemSummary,
 };
 use pi_doctor_probes::{
-    board::BoardProbe, camera::CameraProbe, config_txt::ConfigTxtProbe, kernel::KernelProbe,
-    os::OsProbe, python::PythonProbe, thermal::ThermalProbe, throttling::ThrottlingProbe,
+    ProbeError,
+    board::{BoardProbe, board_findings},
+    camera::CameraProbe,
+    config_txt::ConfigTxtProbe,
+    kernel::KernelProbe,
+    os::OsProbe,
+    python::PythonProbe,
+    thermal::{ThermalProbe, thermal_findings},
+    throttling::{ThrottlingProbe, throttling_findings},
 };
 use std::io::IsTerminal;
+use std::time::Duration;
 
 pub struct CliResponse {
     pub output: String,
@@ -26,12 +34,13 @@ pub struct CliResponse {
 
 pub fn run(cli: Cli) -> Result<CliResponse> {
     let settings = output::RenderSettings::from_cli(&cli, std::io::stdout().is_terminal());
+    let timeout = Duration::from_secs(cli.timeout);
 
     match cli.command {
-        Commands::Check {} => execute_check(settings),
-        Commands::Explain { topic } => execute_explain(topic),
-        Commands::SupportBundle => execute_support_bundle(),
-        Commands::Doctor { target } => execute_doctor(target),
+        Commands::Check {} => execute_check(settings, timeout),
+        Commands::Explain { topic } => execute_explain(topic, timeout),
+        Commands::SupportBundle => execute_support_bundle(timeout),
+        Commands::Doctor { target } => execute_doctor(target, timeout),
         Commands::Completions { shell } => execute_completions(shell),
     }
 }
@@ -47,45 +56,60 @@ pub fn build_check_report(ctx: &ProbeContext) -> Report {
     let os_probe = OsProbe;
     let kernel_probe = KernelProbe;
     let config_probe = ConfigTxtProbe;
+    let thermal_probe = ThermalProbe;
+    let throttling_probe = ThrottlingProbe;
+    let camera_probe = CameraProbe;
+    let python_probe = PythonProbe;
 
-    let board = board_probe.collect(ctx).unwrap_or_else(|error| {
-        warn!("board collection fallback: {error}");
-        Default::default()
-    });
-    let os = os_probe.collect(ctx).unwrap_or_else(|error| {
-        warn!("os collection fallback: {error}");
-        Default::default()
-    });
-    let kernel = kernel_probe.collect(ctx).unwrap_or_else(|error| {
-        warn!("kernel collection fallback: {error}");
-        pi_doctor_probes::kernel::KernelDetails {
-            architecture: Some(std::env::consts::ARCH.to_owned()),
-            release: None,
-        }
-    });
-    let config = config_probe.collect(ctx).unwrap_or_else(|error| {
-        warn!("config collection fallback: {error}");
-        Default::default()
-    });
-    let camera = CameraProbe.collect(ctx).unwrap_or_else(|error| {
-        warn!("camera collection fallback: {error}");
-        Default::default()
-    });
-    let python = PythonProbe.collect(ctx).unwrap_or_else(|error| {
-        warn!("python collection fallback: {error}");
-        Default::default()
-    });
-    let mut findings = vec![
-        board_probe.run(ctx),
-        os_probe.run(ctx),
-        kernel_probe.run(ctx),
-        config.findings.clone(),
-        ThermalProbe.run(ctx),
-        ThrottlingProbe.run(ctx),
+    let board = collect_probe("board", board_probe.collect(ctx));
+    let os = collect_probe("os", os_probe.collect(ctx));
+    let kernel = collect_probe("kernel", kernel_probe.collect(ctx));
+    let config = collect_probe("config", config_probe.collect(ctx));
+    let thermal = collect_probe("thermal", thermal_probe.collect(ctx));
+    let mut throttling = collect_probe("throttling", throttling_probe.collect(ctx));
+    let mut camera = collect_probe("camera", camera_probe.collect(ctx));
+    let python = collect_probe("python", python_probe.collect(ctx));
+
+    if camera.health.outcome == ProbeOutcome::Success && camera.value.summary.tool_used.is_none() {
+        camera.health.outcome = ProbeOutcome::Unavailable;
+        camera.health.detail = Some("no camera inventory tool was available".to_owned());
+    }
+    if throttling.health.outcome == ProbeOutcome::Success && !throttling.value.vcgencmd_available {
+        throttling.health.outcome = ProbeOutcome::Unavailable;
+        throttling.health.detail = Some("vcgencmd get_throttled was unavailable".to_owned());
+    }
+
+    let mut probe_health = vec![
+        board.health.clone(),
+        os.health.clone(),
+        kernel.health.clone(),
+        config.health.clone(),
+        thermal.health.clone(),
+        throttling.health.clone(),
+        camera.health.clone(),
+        python.health.clone(),
+    ];
+    probe_health.sort_by_key(|health| health.name);
+
+    let mut findings = Vec::new();
+    findings.extend(board_findings(board.value.clone()));
+    findings.extend(config.value.findings.clone());
+    findings.extend(thermal_findings(&thermal.value));
+    findings.extend(throttling_findings(throttling.value.clone()));
+    findings.extend(camera.value.findings.clone());
+    findings.extend(python.value.findings.clone());
+    findings.extend([
+        board.unavailable_finding,
+        os.unavailable_finding,
+        kernel.unavailable_finding,
+        config.unavailable_finding,
+        thermal.unavailable_finding,
+        throttling.unavailable_finding,
+        camera.unavailable_finding,
+        python.unavailable_finding,
     ]
     .into_iter()
-    .flatten()
-    .collect::<Vec<_>>();
+    .flatten());
     sort_findings(&mut findings);
     let groups = group_findings(&findings);
 
@@ -95,21 +119,139 @@ pub fn build_check_report(ctx: &ProbeContext) -> Report {
         },
         schema_version: "1.0.0",
         overall_status: overall_status(&findings),
+        probe_health,
         system: Some(SystemSummary {
-            board_model: board.model,
-            board_revision: board.revision,
-            architecture: kernel.architecture,
-            distro_name: os.distro_name,
-            distro_version: os.distro_version,
-            distro_codename: os.distro_codename,
-            kernel_release: kernel.release,
-            is_raspberry_pi: board.is_raspberry_pi,
+            board_model: board.value.model,
+            board_revision: board.value.revision,
+            architecture: kernel.value.architecture,
+            distro_name: os.value.distro_name,
+            distro_version: os.value.distro_version,
+            distro_codename: os.value.distro_codename,
+            kernel_release: kernel.value.release,
+            is_raspberry_pi: board.value.is_raspberry_pi,
         }),
-        config: Some(config.summary),
-        camera: Some(camera.summary),
-        python: Some(python.summary),
+        config: Some(config.value.summary),
+        camera: Some(camera.value.summary),
+        python: Some(python.value.summary),
         groups,
         findings,
+    }
+}
+
+#[derive(Debug, Clone)]
+struct CheckedProbe<T> {
+    value: T,
+    health: ProbeHealth,
+    unavailable_finding: Option<Finding>,
+}
+
+fn collect_probe<T>(name: &'static str, result: Result<T, ProbeError>) -> CheckedProbe<T>
+where
+    T: Default,
+{
+    match result {
+        Ok(value) => CheckedProbe {
+            value,
+            health: ProbeHealth {
+                name,
+                outcome: ProbeOutcome::Success,
+                detail: None,
+            },
+            unavailable_finding: None,
+        },
+        Err(error) => {
+            warn!("{name} collection fallback: {error}");
+            CheckedProbe {
+                value: T::default(),
+                health: ProbeHealth {
+                    name,
+                    outcome: probe_outcome_for_error(&error),
+                    detail: Some(error.to_string()),
+                },
+                unavailable_finding: Some(probe_unavailable_finding(name, &error)),
+            }
+        }
+    }
+}
+
+fn probe_outcome_for_error(error: &ProbeError) -> ProbeOutcome {
+    match error {
+        ProbeError::MissingField { .. }
+        | ProbeError::ReadText { .. }
+        | ProbeError::MissingTool { .. } => ProbeOutcome::Unavailable,
+        ProbeError::PermissionDenied { .. } => ProbeOutcome::PermissionDenied,
+        ProbeError::CommandFailure { .. } | ProbeError::CommandOutputLimit { .. } => {
+            ProbeOutcome::CommandFailed
+        }
+        ProbeError::CommandTimedOut { .. } => ProbeOutcome::TimedOut,
+        ProbeError::Parse { .. } => ProbeOutcome::ParseFailed,
+    }
+}
+
+fn probe_unavailable_finding(name: &'static str, error: &ProbeError) -> Finding {
+    let (id, title, impact) = match name {
+        "board" => (
+            "board.unavailable",
+            "Board identity could not be inspected",
+            Impact::Warning,
+        ),
+        "os" => (
+            "os.unavailable",
+            "Operating system identity could not be inspected",
+            Impact::Warning,
+        ),
+        "kernel" => (
+            "kernel.unavailable",
+            "Kernel identity could not be inspected",
+            Impact::Warning,
+        ),
+        "config" => (
+            "config_txt.unavailable",
+            "Boot config could not be inspected",
+            Impact::Warning,
+        ),
+        "thermal" => (
+            "thermal.unavailable",
+            "Thermal state could not be inspected",
+            Impact::Warning,
+        ),
+        "throttling" => (
+            "throttling.unavailable",
+            "Firmware throttling telemetry could not be inspected",
+            Impact::Warning,
+        ),
+        "camera" => (
+            "camera.unavailable",
+            "Camera stack could not be inspected",
+            Impact::Degraded,
+        ),
+        "python" => (
+            "python.unavailable",
+            "Python environment could not be inspected",
+            Impact::Warning,
+        ),
+        _ => (
+            "system.probe_unavailable",
+            "A probe could not complete",
+            Impact::Warning,
+        ),
+    };
+
+    Finding {
+        id,
+        severity: Severity::Warning,
+        impact,
+        title: title.to_owned(),
+        summary: format!(
+            "The `{name}` probe did not complete, so this part of the report is incomplete."
+        ),
+        evidence: vec![error.to_string()],
+        suggested_actions: vec![
+            "Why this matters: unavailable probe data is not the same as a healthy subsystem.".to_owned(),
+            format!(
+                "What to run next: resolve the `{name}` probe error and rerun `pi-doctor check`."
+            ),
+        ],
     }
 }
 
@@ -118,23 +260,23 @@ pub fn render_help() -> String {
     command.render_long_help().to_string()
 }
 
-fn execute_check(settings: output::RenderSettings) -> Result<CliResponse> {
-    render_check_with_context(&ProbeContext::new(), settings)
+fn execute_check(settings: output::RenderSettings, timeout: Duration) -> Result<CliResponse> {
+    render_check_with_context(&ProbeContext::new().with_timeout(timeout), settings)
 }
 
-fn execute_explain(topic: ExplainTopic) -> Result<CliResponse> {
-    let ctx = ProbeContext::new();
+fn execute_explain(topic: ExplainTopic, timeout: Duration) -> Result<CliResponse> {
+    let ctx = ProbeContext::new().with_timeout(timeout);
     Ok(CliResponse {
         output: explain::render(topic, &ctx),
         exit_code: 0,
     })
 }
 
-fn execute_support_bundle() -> Result<CliResponse> {
+fn execute_support_bundle(timeout: Duration) -> Result<CliResponse> {
     use std::collections::BTreeMap;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    let ctx = ProbeContext::new();
+    let ctx = ProbeContext::new().with_timeout(timeout);
     let report = build_check_report(&ctx);
     let mut extra_files = BTreeMap::new();
 
@@ -215,8 +357,8 @@ fn execute_support_bundle() -> Result<CliResponse> {
     })
 }
 
-fn execute_doctor(target: DoctorTarget) -> Result<CliResponse> {
-    let ctx = ProbeContext::new();
+fn execute_doctor(target: DoctorTarget, timeout: Duration) -> Result<CliResponse> {
+    let ctx = ProbeContext::new().with_timeout(timeout);
     let output = match target {
         DoctorTarget::Camera => doctor::camera::render(&ctx),
         DoctorTarget::Gpio => doctor::gpio::render(&ctx),
@@ -250,17 +392,17 @@ fn render_check_with_context(
 }
 
 fn overall_status(findings: &[Finding]) -> OverallStatus {
-    if findings.is_empty() {
-        OverallStatus::Healthy
-    } else if findings.iter().any(|finding| finding.id.contains("active")) {
-        OverallStatus::Degraded
-    } else if findings
+    let highest = findings
         .iter()
-        .any(|finding| matches!(finding.severity, pi_doctor_core::Severity::Warning))
-    {
-        OverallStatus::Warning
-    } else {
-        OverallStatus::Healthy
+        .map(|finding| finding.impact)
+        .max()
+        .unwrap_or(Impact::Info);
+
+    match highest {
+        Impact::Info => OverallStatus::Healthy,
+        Impact::Warning => OverallStatus::Warning,
+        Impact::Degraded => OverallStatus::Degraded,
+        Impact::Critical => OverallStatus::Critical,
     }
 }
 
@@ -336,6 +478,8 @@ fn command_output_text(ctx: &ProbeContext, program: &str, args: &[&str]) -> Stri
         pi_doctor_core::CommandOutput::Success(output) => format!("{output}\n"),
         pi_doctor_core::CommandOutput::Missing => "missing\n".to_owned(),
         pi_doctor_core::CommandOutput::Failure(error) => format!("failure: {error}\n"),
+        pi_doctor_core::CommandOutput::TimedOut => "timed out\n".to_owned(),
+        pi_doctor_core::CommandOutput::OutputLimitExceeded => "output limit exceeded\n".to_owned(),
     }
 }
 
@@ -390,8 +534,10 @@ fn render_python_summary(report: &Report) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::exit_code_for_status;
-    use pi_doctor_core::OverallStatus;
+    use super::{build_check_report, exit_code_for_status, overall_status};
+    use pi_doctor_core::{
+        CommandOutput, Finding, Impact, OverallStatus, ProbeContext, ProbeOutcome, Severity,
+    };
 
     #[test]
     fn exit_code_contract_matches_status_levels() {
@@ -399,5 +545,61 @@ mod tests {
         assert_eq!(exit_code_for_status(OverallStatus::Warning), 1);
         assert_eq!(exit_code_for_status(OverallStatus::Degraded), 2);
         assert_eq!(exit_code_for_status(OverallStatus::Critical), 3);
+    }
+
+    #[test]
+    fn overall_status_uses_explicit_impact_not_finding_id() {
+        let findings = vec![Finding {
+            id: "example.active_but_only_warning",
+            severity: Severity::Warning,
+            impact: Impact::Warning,
+            title: "Example warning".to_owned(),
+            summary: "The id contains active, but the impact controls rollup.".to_owned(),
+            evidence: Vec::new(),
+            suggested_actions: Vec::new(),
+        }];
+
+        assert_eq!(overall_status(&findings), OverallStatus::Warning);
+    }
+
+    #[test]
+    fn critical_impact_rolls_up_to_critical_status() {
+        let findings = vec![Finding {
+            id: "example.critical",
+            severity: Severity::Warning,
+            impact: Impact::Critical,
+            title: "Example critical".to_owned(),
+            summary: "Critical impact must reach the public status contract.".to_owned(),
+            evidence: Vec::new(),
+            suggested_actions: Vec::new(),
+        }];
+
+        assert_eq!(overall_status(&findings), OverallStatus::Critical);
+    }
+
+    #[test]
+    fn probe_health_preserves_timed_out_camera_inventory() {
+        let ctx = ProbeContext::new()
+            .with_command_output(
+                "rpicam-hello",
+                &["--help"],
+                CommandOutput::Success("usage".to_owned()),
+            )
+            .with_command_output(
+                "rpicam-hello",
+                &["--list-cameras"],
+                CommandOutput::TimedOut,
+            )
+            .with_command_output("libcamera-hello", &["--help"], CommandOutput::Missing)
+            .with_command_output("python3", &["--version"], CommandOutput::Missing);
+
+        let report = build_check_report(&ctx);
+        let camera_health = report
+            .probe_health
+            .iter()
+            .find(|health| health.name == "camera")
+            .expect("camera health should be present");
+
+        assert_eq!(camera_health.outcome, ProbeOutcome::TimedOut);
     }
 }

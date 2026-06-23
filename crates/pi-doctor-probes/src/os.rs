@@ -1,4 +1,4 @@
-use crate::ProbeError;
+use crate::{ProbeError, read_optional_text};
 use pi_doctor_core::{Probe, ProbeContext, ProbeResult};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -12,12 +12,12 @@ pub struct OsProbe;
 
 impl OsProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<OsDetails, ProbeError> {
-        let os_release = ctx
-            .read_text("/etc/os-release")
-            .or_else(|| ctx.read_text("/usr/lib/os-release"))
-            .ok_or(ProbeError::ReadText {
+        let os_release = match read_optional_text(ctx, "/etc/os-release")? {
+            Some(contents) => contents,
+            None => read_optional_text(ctx, "/usr/lib/os-release")?.ok_or(ProbeError::ReadText {
                 path: "/etc/os-release or /usr/lib/os-release",
-            })?;
+            })?,
+        };
 
         let version_field = os_release_value(&os_release, "VERSION");
         let pretty_name = os_release_value(&os_release, "PRETTY_NAME");

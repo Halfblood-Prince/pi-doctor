@@ -1,6 +1,6 @@
 use crate::ProbeError;
 use pi_doctor_core::{
-    CommandOutput, Finding, Probe, ProbeContext, ProbeResult, PythonSummary, Severity,
+    CommandOutput, Finding, Impact, Probe, ProbeContext, ProbeResult, PythonSummary, Severity,
 };
 
 const PYTHON_VERSION_ARGS: &[&str] = &["--version"];
@@ -27,53 +27,26 @@ pub struct PythonProbe;
 impl PythonProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<PythonAnalysis, ProbeError> {
         let python_present = ctx.command_exists("python3");
-        let version = if python_present {
-            match ctx.run_command("python3", PYTHON_VERSION_ARGS) {
-                CommandOutput::Success(output) => normalize_single_line(&output),
-                _ => None,
-            }
-        } else {
-            None
-        };
-        let executable = if python_present {
-            match ctx.run_command("python3", PYTHON_EXECUTABLE_ARGS) {
-                CommandOutput::Success(output) => normalize_single_line(&output),
-                _ => None,
-            }
-        } else {
-            None
-        };
-        let in_virtualenv = if python_present {
-            matches!(
-                ctx.run_command("python3", PYTHON_VENV_ARGS),
-                CommandOutput::Success(output) if normalize_single_line(&output).as_deref() == Some("1")
-            )
-        } else {
-            false
-        };
+        if !python_present {
+            return Err(ProbeError::MissingTool { program: "python3" });
+        }
+        let version = python_single_line(ctx, PYTHON_VERSION_ARGS)?;
+        let executable = python_single_line(ctx, PYTHON_EXECUTABLE_ARGS)?;
+        let in_virtualenv = python_single_line(ctx, PYTHON_VENV_ARGS)?.as_deref() == Some("1");
 
-        let externally_managed = if python_present {
-            match ctx.run_command("python3", PYTHON_STDLIB_ARGS) {
-                CommandOutput::Success(output) => {
-                    if let Some(stdlib) = normalize_single_line(&output) {
-                        let path = format!("{}/EXTERNALLY-MANAGED", stdlib.replace('\\', "/"));
-                        ctx.path_exists(path)
-                    } else {
-                        false
-                    }
-                }
-                _ => false,
-            }
+        let externally_managed = if let Some(stdlib) = python_single_line(ctx, PYTHON_STDLIB_ARGS)? {
+            let path = format!("{}/EXTERNALLY-MANAGED", stdlib.replace('\\', "/"));
+            ctx.path_exists(path)
         } else {
             false
         };
 
         let mut detected_packages = Vec::new();
         let dpkg_present = ctx.command_exists("dpkg-query");
-        if dpkg_present && is_dpkg_installed(&ctx.run_command("dpkg-query", DPKG_PICAMERA2_ARGS)) {
+        if dpkg_present && dpkg_package_installed(ctx, DPKG_PICAMERA2_ARGS)? {
             detected_packages.push("python3-picamera2".to_owned());
         }
-        if dpkg_present && is_dpkg_installed(&ctx.run_command("dpkg-query", DPKG_GPIOZERO_ARGS)) {
+        if dpkg_present && dpkg_package_installed(ctx, DPKG_GPIOZERO_ARGS)? {
             detected_packages.push("python3-gpiozero".to_owned());
         }
 
@@ -98,11 +71,55 @@ impl Probe for PythonProbe {
     }
 }
 
-fn is_dpkg_installed(output: &CommandOutput) -> bool {
-    matches!(
-        output,
-        CommandOutput::Success(text) if text.split_whitespace().eq(["install", "ok", "installed"])
-    )
+fn python_single_line(
+    ctx: &ProbeContext,
+    args: &'static [&'static str],
+) -> Result<Option<String>, ProbeError> {
+    command_single_line(ctx, "python3", args)
+}
+
+fn dpkg_package_installed(
+    ctx: &ProbeContext,
+    args: &'static [&'static str],
+) -> Result<bool, ProbeError> {
+    match ctx.run_command("dpkg-query", args) {
+        CommandOutput::Success(text) => {
+            Ok(text.split_whitespace().eq(["install", "ok", "installed"]))
+        }
+        CommandOutput::Failure(_) | CommandOutput::Missing => Ok(false),
+        CommandOutput::TimedOut => Err(ProbeError::CommandTimedOut {
+            program: "dpkg-query",
+            args: args.join(" "),
+        }),
+        CommandOutput::OutputLimitExceeded => Err(ProbeError::CommandOutputLimit {
+            program: "dpkg-query",
+            args: args.join(" "),
+        }),
+    }
+}
+
+fn command_single_line(
+    ctx: &ProbeContext,
+    program: &'static str,
+    args: &'static [&'static str],
+) -> Result<Option<String>, ProbeError> {
+    match ctx.run_command(program, args) {
+        CommandOutput::Success(output) => Ok(normalize_single_line(&output)),
+        CommandOutput::Missing => Err(ProbeError::MissingTool { program }),
+        CommandOutput::Failure(detail) => Err(ProbeError::CommandFailure {
+            program,
+            args: args.join(" "),
+            detail,
+        }),
+        CommandOutput::TimedOut => Err(ProbeError::CommandTimedOut {
+            program,
+            args: args.join(" "),
+        }),
+        CommandOutput::OutputLimitExceeded => Err(ProbeError::CommandOutputLimit {
+            program,
+            args: args.join(" "),
+        }),
+    }
 }
 
 fn normalize_single_line(output: &str) -> Option<String> {
@@ -120,6 +137,7 @@ fn python_findings(summary: &PythonSummary) -> Vec<Finding> {
         findings.push(Finding {
             id: "python.externally_managed",
             severity: Severity::Warning,
+            impact: Impact::Warning,
             title: "System Python is externally managed".to_owned(),
             summary: "This Python installation is marked EXTERNALLY-MANAGED, which means pip installs should generally happen inside a virtual environment.".to_owned(),
             evidence: vec![format!(
@@ -137,6 +155,7 @@ fn python_findings(summary: &PythonSummary) -> Vec<Finding> {
         findings.push(Finding {
             id: "python.no_virtualenv",
             severity: Severity::Warning,
+            impact: Impact::Warning,
             title: "No active virtual environment detected".to_owned(),
             summary: "Python appears to be running outside a virtual environment.".to_owned(),
             evidence: vec![format!(
@@ -158,6 +177,7 @@ fn python_findings(summary: &PythonSummary) -> Vec<Finding> {
         findings.push(Finding {
             id: "python.picamera2_apt_present",
             severity: Severity::Info,
+            impact: Impact::Info,
             title: "Picamera2 is installed from the distro package".to_owned(),
             summary: "The `python3-picamera2` package is present, which is usually the preferred Raspberry Pi OS path.".to_owned(),
             evidence: vec!["package detected: python3-picamera2".to_owned()],

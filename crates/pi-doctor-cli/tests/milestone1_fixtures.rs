@@ -1,4 +1,4 @@
-use pi_doctor_core::{CommandOutput, ProbeContext, Severity};
+use pi_doctor_core::{CommandOutput, ProbeContext, ProbeOutcome, Severity};
 use std::path::PathBuf;
 
 #[test]
@@ -19,7 +19,10 @@ fn pi4_bookworm_fixture_is_detected_as_raspberry_pi() {
     assert_eq!(system.distro_codename.as_deref(), Some("bookworm"));
     assert_eq!(system.kernel_release.as_deref(), Some("6.6.31-v8+"));
     assert!(system.is_raspberry_pi);
-    assert!(report.findings.is_empty());
+    assert!(report
+        .probe_health
+        .iter()
+        .any(|health| health.name == "board" && health.outcome == ProbeOutcome::Success));
 }
 
 #[test]
@@ -39,7 +42,10 @@ fn pi5_trixie_fixture_is_detected_as_raspberry_pi() {
     assert_eq!(system.distro_codename.as_deref(), Some("trixie"));
     assert_eq!(system.kernel_release.as_deref(), Some("6.12.25-v8-16k+"));
     assert!(system.is_raspberry_pi);
-    assert!(report.findings.is_empty());
+    assert!(report
+        .probe_health
+        .iter()
+        .any(|health| health.name == "board" && health.outcome == ProbeOutcome::Success));
 }
 
 #[test]
@@ -53,9 +59,12 @@ fn non_pi_fixture_emits_warning_instead_of_failing() {
     assert_eq!(system.distro_codename.as_deref(), Some("bookworm"));
     assert_eq!(system.kernel_release.as_deref(), Some("6.1.0-27-amd64"));
     assert!(!system.is_raspberry_pi);
-    assert_eq!(report.findings.len(), 1);
-    assert_eq!(report.findings[0].severity, Severity::Warning);
-    assert_eq!(report.findings[0].id, "board.non_raspberry_pi");
+    let board_finding = report
+        .findings
+        .iter()
+        .find(|finding| finding.id == "board.non_raspberry_pi")
+        .expect("non-Pi fixture should emit a board finding");
+    assert_eq!(board_finding.severity, Severity::Warning);
 }
 
 fn fixture_report(name: &str) -> pi_doctor_core::Report {
@@ -65,11 +74,46 @@ fn fixture_report(name: &str) -> pi_doctor_core::Report {
         .join("fixtures")
         .join("milestone1")
         .join(name);
-    let ctx = ProbeContext::with_root(root).with_command_output(
-        "vcgencmd",
-        &["get_throttled"],
-        CommandOutput::Success("throttled=0x0".to_owned()),
-    );
+    let ctx = ProbeContext::with_root(root)
+        .with_command_output(
+            "vcgencmd",
+            &["get_throttled"],
+            CommandOutput::Success("throttled=0x0".to_owned()),
+        )
+        .with_command_output("rpicam-hello", &["--list-cameras"], CommandOutput::Missing)
+        .with_command_output("libcamera-hello", &["--list-cameras"], CommandOutput::Missing)
+        .with_command_output("python3", &["--version"], CommandOutput::Missing)
+        .with_command_output(
+            "python3",
+            &["-c", "import sys; print(sys.executable)"],
+            CommandOutput::Missing,
+        )
+        .with_command_output(
+            "python3",
+            &[
+                "-c",
+                "import sys; print(int(sys.prefix != sys.base_prefix))",
+            ],
+            CommandOutput::Missing,
+        )
+        .with_command_output(
+            "python3",
+            &[
+                "-c",
+                "import sysconfig; print(sysconfig.get_path('stdlib'))",
+            ],
+            CommandOutput::Missing,
+        )
+        .with_command_output(
+            "dpkg-query",
+            &["-W", "-f=${Status}", "python3-picamera2"],
+            CommandOutput::Missing,
+        )
+        .with_command_output(
+            "dpkg-query",
+            &["-W", "-f=${Status}", "python3-gpiozero"],
+            CommandOutput::Missing,
+        );
 
     pi_doctor::build_check_report(&ctx)
 }

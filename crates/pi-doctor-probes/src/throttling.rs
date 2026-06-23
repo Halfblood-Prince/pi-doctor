@@ -1,6 +1,6 @@
 use crate::ProbeError;
 use log::warn;
-use pi_doctor_core::{CommandOutput, Finding, Probe, ProbeContext, ProbeResult, Severity};
+use pi_doctor_core::{CommandOutput, Finding, Impact, Probe, ProbeContext, ProbeResult, Severity};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ThrottlingDetails {
@@ -38,6 +38,14 @@ impl ThrottlingProbe {
                 args: "get_throttled".to_owned(),
                 detail,
             }),
+            CommandOutput::TimedOut => Err(ProbeError::CommandTimedOut {
+                program: "vcgencmd",
+                args: "get_throttled".to_owned(),
+            }),
+            CommandOutput::OutputLimitExceeded => Err(ProbeError::CommandOutputLimit {
+                program: "vcgencmd",
+                args: "get_throttled".to_owned(),
+            }),
         }
     }
 }
@@ -55,77 +63,87 @@ impl Probe for ThrottlingProbe {
                 }
             }
         };
-        let mut findings = Vec::new();
-
-        if !details.vcgencmd_available {
-            findings.push(Finding {
-                id: "throttling.vcgencmd_missing",
-                severity: Severity::Warning,
-                title: "vcgencmd is not available".to_owned(),
-                summary: "pi-doctor could not read Raspberry Pi firmware throttling telemetry because `vcgencmd` is missing.".to_owned(),
-                evidence: vec!["command: vcgencmd get_throttled".to_owned()],
-                suggested_actions: vec![
-                    "Why this matters: undervoltage and firmware throttling signals come from Raspberry Pi firmware telemetry.".to_owned(),
-                    "What to run next: verify you are on Raspberry Pi OS or install the Raspberry Pi firmware utilities before rerunning `pi-doctor explain throttling`.".to_owned(),
-                ],
-            });
-            return findings;
-        }
-
-        if let Some(error) = details.error {
-            findings.push(Finding {
-                id: "throttling.vcgencmd_failed",
-                severity: Severity::Warning,
-                title: "vcgencmd throttling query failed".to_owned(),
-                summary: "pi-doctor tried to read throttling telemetry, but the firmware command did not return a usable result.".to_owned(),
-                evidence: vec![error.to_string()],
-                suggested_actions: vec![
-                    "Why this matters: without a valid throttle bitmask, undervoltage and thermal history cannot be decoded reliably.".to_owned(),
-                    "What to run next: run `vcgencmd get_throttled` directly and compare the output before rerunning `pi-doctor explain throttling`.".to_owned(),
-                ],
-            });
-            return findings;
-        }
-
-        push_flag_finding(
-            &mut findings,
-            details.undervoltage_now,
-            "throttling.undervoltage_now",
-            "Under-voltage is active now",
-            "Firmware telemetry reports an active under-voltage condition.",
-            "Why this matters: unstable power can cause throttling, crashes, and peripheral instability.",
-            "What to run next: check the power supply, cable quality, and inline voltage drops, then rerun `pi-doctor explain throttling`.",
-        );
-        push_flag_finding(
-            &mut findings,
-            details.undervoltage_happened,
-            "throttling.undervoltage_happened",
-            "Under-voltage happened historically",
-            "Firmware telemetry shows the board experienced under-voltage since boot.",
-            "Why this matters: even if power looks stable now, historical undervoltage can explain intermittent slowdowns or resets.",
-            "What to run next: inspect recent load spikes, attached peripherals, and power headroom.",
-        );
-        push_flag_finding(
-            &mut findings,
-            details.throttled_now,
-            "throttling.active",
-            "Throttling is active",
-            "Firmware telemetry reports active throttling right now.",
-            "Why this matters: the board is reducing performance to protect itself or stay within power limits.",
-            "What to run next: inspect power quality and thermals, then compare with `vcgencmd get_throttled` after the system cools down.",
-        );
-        push_flag_finding(
-            &mut findings,
-            details.soft_temperature_limit_now,
-            "throttling.soft_temp_limit_now",
-            "Soft thermal limit is active",
-            "Firmware telemetry reports the soft thermal limit is currently active.",
-            "Why this matters: the system is hot enough that performance may already be reduced.",
-            "What to run next: improve cooling and airflow, then watch whether the bitmask clears.",
-        );
-
-        findings
+        throttling_findings(details)
     }
+}
+
+pub fn throttling_findings(details: ThrottlingDetails) -> Vec<Finding> {
+    let mut findings = Vec::new();
+
+    if !details.vcgencmd_available {
+        findings.push(Finding {
+            id: "throttling.vcgencmd_missing",
+            severity: Severity::Warning,
+            impact: Impact::Warning,
+            title: "vcgencmd is not available".to_owned(),
+            summary: "pi-doctor could not read Raspberry Pi firmware throttling telemetry because `vcgencmd` is missing.".to_owned(),
+            evidence: vec!["command: vcgencmd get_throttled".to_owned()],
+            suggested_actions: vec![
+                "Why this matters: undervoltage and firmware throttling signals come from Raspberry Pi firmware telemetry.".to_owned(),
+                "What to run next: verify you are on Raspberry Pi OS or install the Raspberry Pi firmware utilities before rerunning `pi-doctor explain throttling`.".to_owned(),
+            ],
+        });
+        return findings;
+    }
+
+    if let Some(error) = details.error {
+        findings.push(Finding {
+            id: "throttling.vcgencmd_failed",
+            severity: Severity::Warning,
+            impact: Impact::Warning,
+            title: "vcgencmd throttling query failed".to_owned(),
+            summary: "pi-doctor tried to read throttling telemetry, but the firmware command did not return a usable result.".to_owned(),
+            evidence: vec![error.to_string()],
+            suggested_actions: vec![
+                "Why this matters: without a valid throttle bitmask, undervoltage and thermal history cannot be decoded reliably.".to_owned(),
+                "What to run next: run `vcgencmd get_throttled` directly and compare the output before rerunning `pi-doctor explain throttling`.".to_owned(),
+            ],
+        });
+        return findings;
+    }
+
+    push_flag_finding(
+        &mut findings,
+        details.undervoltage_now,
+        "throttling.undervoltage_now",
+        Impact::Critical,
+        "Under-voltage is active now",
+        "Firmware telemetry reports an active under-voltage condition.",
+        "Why this matters: unstable power can cause throttling, crashes, and peripheral instability.",
+        "What to run next: check the power supply, cable quality, and inline voltage drops, then rerun `pi-doctor explain throttling`.",
+    );
+    push_flag_finding(
+        &mut findings,
+        details.undervoltage_happened,
+        "throttling.undervoltage_happened",
+        Impact::Warning,
+        "Under-voltage happened historically",
+        "Firmware telemetry shows the board experienced under-voltage since boot.",
+        "Why this matters: even if power looks stable now, historical undervoltage can explain intermittent slowdowns or resets.",
+        "What to run next: inspect recent load spikes, attached peripherals, and power headroom.",
+    );
+    push_flag_finding(
+        &mut findings,
+        details.throttled_now,
+        "throttling.active",
+        Impact::Critical,
+        "Throttling is active",
+        "Firmware telemetry reports active throttling right now.",
+        "Why this matters: the board is reducing performance to protect itself or stay within power limits.",
+        "What to run next: inspect power quality and thermals, then compare with `vcgencmd get_throttled` after the system cools down.",
+    );
+    push_flag_finding(
+        &mut findings,
+        details.soft_temperature_limit_now,
+        "throttling.soft_temp_limit_now",
+        Impact::Critical,
+        "Soft thermal limit is active",
+        "Firmware telemetry reports the soft thermal limit is currently active.",
+        "Why this matters: the system is hot enough that performance may already be reduced.",
+        "What to run next: improve cooling and airflow, then watch whether the bitmask clears.",
+    );
+
+    findings
 }
 
 pub fn parse_throttled_output(raw: &str) -> Result<ThrottlingDetails, ProbeError> {
@@ -168,6 +186,7 @@ fn push_flag_finding(
     findings: &mut Vec<Finding>,
     active: bool,
     id: &'static str,
+    impact: Impact,
     title: &str,
     summary: &str,
     why: &str,
@@ -177,6 +196,7 @@ fn push_flag_finding(
         findings.push(Finding {
             id,
             severity: Severity::Warning,
+            impact,
             title: title.to_owned(),
             summary: summary.to_owned(),
             evidence: Vec::new(),

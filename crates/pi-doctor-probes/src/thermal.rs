@@ -1,6 +1,6 @@
-use crate::ProbeError;
+use crate::{ProbeError, read_optional_text};
 use log::warn;
-use pi_doctor_core::{Finding, Probe, ProbeContext, ProbeResult, Severity};
+use pi_doctor_core::{Finding, Impact, Probe, ProbeContext, ProbeResult, Severity};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TemperatureBand {
@@ -31,8 +31,7 @@ pub struct ThermalProbe;
 
 impl ThermalProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<ThermalDetails, ProbeError> {
-        let raw = ctx
-            .read_text("/sys/class/thermal/thermal_zone0/temp")
+        let raw = read_optional_text(ctx, "/sys/class/thermal/thermal_zone0/temp")?
             .ok_or(ProbeError::ReadText {
                 path: "/sys/class/thermal/thermal_zone0/temp",
             })?;
@@ -52,38 +51,43 @@ impl Probe for ThermalProbe {
                 ThermalDetails::default()
             }
         };
+        thermal_findings(&details)
+    }
+}
 
-        match details.band {
-            Some(TemperatureBand::NearThrottle) => vec![Finding {
-                id: "thermal.near_throttle",
-                severity: Severity::Warning,
-                title: "CPU temperature is near throttling range".to_owned(),
-                summary: format!(
-                    "CPU temperature is {:.1} C, which is close to the Raspberry Pi throttling threshold.",
-                    details.celsius.unwrap_or_default()
-                ),
-                evidence: vec!["temperature classification: near throttle".to_owned()],
-                suggested_actions: vec![
-                    "Why this matters: sustained heat can reduce performance before full throttling becomes obvious.".to_owned(),
-                    "What to run next: inspect airflow, heatsink contact, and active cooling while rerunning `pi-doctor explain throttling`.".to_owned(),
-                ],
-            }],
-            Some(TemperatureBand::ThrottlingLikely) => vec![Finding {
-                id: "thermal.throttling_likely",
-                severity: Severity::Warning,
-                title: "CPU temperature is in throttling territory".to_owned(),
-                summary: format!(
-                    "CPU temperature is {:.1} C, which is hot enough that thermal throttling is likely or already active.",
-                    details.celsius.unwrap_or_default()
-                ),
-                evidence: vec!["temperature classification: throttling likely".to_owned()],
-                suggested_actions: vec![
-                    "Why this matters: Raspberry Pi boards reduce performance when they overheat.".to_owned(),
-                    "What to run next: improve cooling, lower sustained load, and rerun `pi-doctor explain throttling` once temperatures fall.".to_owned(),
-                ],
-            }],
-            _ => Vec::new(),
-        }
+pub fn thermal_findings(details: &ThermalDetails) -> Vec<Finding> {
+    match details.band {
+        Some(TemperatureBand::NearThrottle) => vec![Finding {
+            id: "thermal.near_throttle",
+            severity: Severity::Warning,
+            impact: Impact::Warning,
+            title: "CPU temperature is near throttling range".to_owned(),
+            summary: format!(
+                "CPU temperature is {:.1} C, which is close to the Raspberry Pi throttling threshold.",
+                details.celsius.unwrap_or_default()
+            ),
+            evidence: vec!["temperature classification: near throttle".to_owned()],
+            suggested_actions: vec![
+                "Why this matters: sustained heat can reduce performance before full throttling becomes obvious.".to_owned(),
+                "What to run next: inspect airflow, heatsink contact, and active cooling while rerunning `pi-doctor explain throttling`.".to_owned(),
+            ],
+        }],
+        Some(TemperatureBand::ThrottlingLikely) => vec![Finding {
+            id: "thermal.throttling_likely",
+            severity: Severity::Warning,
+            impact: Impact::Critical,
+            title: "CPU temperature is in throttling territory".to_owned(),
+            summary: format!(
+                "CPU temperature is {:.1} C, which is hot enough that thermal throttling is likely or already active.",
+                details.celsius.unwrap_or_default()
+            ),
+            evidence: vec!["temperature classification: throttling likely".to_owned()],
+            suggested_actions: vec![
+                "Why this matters: Raspberry Pi boards reduce performance when they overheat.".to_owned(),
+                "What to run next: improve cooling, lower sustained load, and rerun `pi-doctor explain throttling` once temperatures fall.".to_owned(),
+            ],
+        }],
+        _ => Vec::new(),
     }
 }
 

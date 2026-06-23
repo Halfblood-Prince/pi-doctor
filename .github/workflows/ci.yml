@@ -136,6 +136,7 @@ jobs:
               "config",
               "camera",
               "python",
+              "probe_health",
               "groups",
               "findings",
           }

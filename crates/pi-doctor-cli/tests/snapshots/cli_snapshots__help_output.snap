@@ -20,5 +20,6 @@ Options:
       --quiet     
       --verbose   
       --no-color  
+      --timeout <SECONDS>  [default: 3]
   -h, --help      Print help
   -V, --version   Print version

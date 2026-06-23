@@ -6,16 +6,14 @@ pi-doctor explain config
 Boot configuration analysis
   source path: /boot/firmware/config.txt
   layout: modern /boot/firmware layout
-  diagnostics: 5
+  diagnostics: 4
   legacy /boot/config.txt also exists
 
 Findings
-  Duplicate `dtoverlay` entries detected.
-  `dtoverlay` appears multiple times in config.txt, which can make the effective boot configuration harder to reason about.
-  Evidence: lines: 3, 4
-  Duplicate `dtparam` entries detected.
-  `dtparam` appears multiple times in config.txt, which can make the effective boot configuration harder to reason about.
+  Conflicting `i2c_arm` dtparam entries detected.
+  `dtparam=i2c_arm=...` has multiple values in the [all] config section.
   Evidence: lines: 5, 6
+  Evidence: values: off, on
   `start_x` looks like a legacy boot option.
   `start_x` is commonly associated with older Raspberry Pi boot or camera guidance and may not be needed on current Raspberry Pi OS releases.
   Evidence: line 7: start_x=1

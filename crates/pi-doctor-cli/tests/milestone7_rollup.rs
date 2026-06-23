@@ -1,6 +1,6 @@
 use insta::assert_snapshot;
 use pi_doctor_core::{
-    Finding, FindingDomain, FindingGroup, OverallStatus, Report, ReportMetadata, Severity,
+    Finding, FindingDomain, FindingGroup, Impact, OverallStatus, Report, ReportMetadata, Severity,
 };
 use pi_doctor_report::human::{RenderOptions, Verbosity};
 
@@ -30,18 +30,21 @@ fn mixed_report() -> Report {
     let config_finding = finding(
         "config_txt.stale_legacy_path",
         Severity::Warning,
+        Impact::Warning,
         "Legacy /boot/config.txt is present alongside the modern config path",
         "This system appears to use /boot/firmware/config.txt, but /boot/config.txt also exists.",
     );
     let thermal_finding = finding(
         "thermal.near_throttle",
         Severity::Warning,
+        Impact::Warning,
         "CPU temperature is near throttling range",
         "CPU temperature is 78.2 C, which is close to the Raspberry Pi throttling threshold.",
     );
     let power_finding = finding(
         "throttling.undervoltage_now",
         Severity::Warning,
+        Impact::Degraded,
         "Under-voltage is active now",
         "Firmware telemetry reports an active under-voltage condition.",
     );
@@ -52,6 +55,7 @@ fn mixed_report() -> Report {
         },
         schema_version: "1.0.0",
         overall_status: OverallStatus::Degraded,
+        probe_health: Vec::new(),
         system: None,
         config: None,
         camera: None,
@@ -74,10 +78,17 @@ fn mixed_report() -> Report {
     }
 }
 
-fn finding(id: &'static str, severity: Severity, title: &str, summary: &str) -> Finding {
+fn finding(
+    id: &'static str,
+    severity: Severity,
+    impact: Impact,
+    title: &str,
+    summary: &str,
+) -> Finding {
     Finding {
         id,
         severity,
+        impact,
         title: title.to_owned(),
         summary: summary.to_owned(),
         evidence: Vec::new(),

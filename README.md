@@ -69,6 +69,7 @@ A Homebrew formula template is provided at
 ```bash
 pi-doctor check
 pi-doctor --json check
+pi-doctor --timeout 5 check
 pi-doctor explain throttling
 pi-doctor explain config
 pi-doctor explain python
@@ -92,6 +93,9 @@ Automation should prefer:
 ```bash
 pi-doctor --json check
 ```
+
+JSON includes `probe_health` so scripts can tell a healthy subsystem from an
+incomplete inspection.
 
 The JSON contract is documented in [`docs/cli-contract.md`](docs/cli-contract.md)
 and [`docs/json-schema.md`](docs/json-schema.md).

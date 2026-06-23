@@ -22,6 +22,9 @@ pub struct Cli {
     #[arg(long, global = true, conflicts_with = "json")]
     pub no_color: bool,
 
+    #[arg(long, global = true, value_name = "SECONDS", default_value_t = 3)]
+    pub timeout: u64,
+
     #[command(subcommand)]
     pub command: Commands,
 }
@@ -127,5 +130,14 @@ mod tests {
             .expect_err("no-color should conflict with json");
 
         assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn parses_global_timeout() {
+        let cli = Cli::try_parse_from(["pi-doctor", "--timeout", "9", "check"])
+            .and_then(Cli::validate)
+            .expect("timeout should parse");
+
+        assert_eq!(cli.timeout, 9);
     }
 }
