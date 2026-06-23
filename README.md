@@ -5,8 +5,6 @@
 [![Release](https://github.com/Halfblood-Prince/pi-doctor/actions/workflows/release.yml/badge.svg)](https://github.com/Halfblood-Prince/pi-doctor/actions/workflows/release.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-Human-first Raspberry Pi diagnostics.
-
 `pi-doctor` is a read-only CLI for checking common Raspberry Pi problems:
 identity mismatches, thermal throttling, `config.txt` drift, GPIO conflicts,
 camera detection failures, and Python environment pitfalls.
