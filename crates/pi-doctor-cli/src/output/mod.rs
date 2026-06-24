@@ -159,9 +159,7 @@ mod tests {
 
     fn empty_report() -> Report {
         Report {
-            metadata: ReportMetadata {
-                command: "check".to_owned(),
-            },
+            metadata: ReportMetadata::new("check"),
             schema_version: "1.0.0",
             overall_status: OverallStatus::Healthy,
             probe_health: Vec::new(),
@@ -186,9 +184,7 @@ mod tests {
         };
 
         Report {
-            metadata: ReportMetadata {
-                command: "check".to_owned(),
-            },
+            metadata: ReportMetadata::new("check"),
             schema_version: "1.0.0",
             overall_status: OverallStatus::Warning,
             probe_health: Vec::new(),

@@ -47,6 +47,9 @@ the process is terminated, the probe reports `timed_out` in JSON
 These outputs are part of the public automation contract:
 
 - `pi-doctor check --json`
+- `pi-doctor --json doctor camera`
+- `pi-doctor --json doctor gpio`
+- `pi-doctor --json support-bundle`
 - `report.json` inside `pi-doctor support-bundle`
 
 For these outputs, the following are stable within a given `schema_version`:

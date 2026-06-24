@@ -18,6 +18,68 @@ pub struct Report {
 #[derive(Debug, Clone, Serialize)]
 pub struct ReportMetadata {
     pub command: String,
+    pub pi_doctor_version: String,
+    pub build_revision: Option<String>,
+    pub target_architecture: String,
+    pub supported_os: SupportedOs,
+    pub probe_availability: ProbeAvailabilitySummary,
+}
+
+impl ReportMetadata {
+    pub fn new(command: impl Into<String>) -> Self {
+        Self {
+            command: command.into(),
+            pi_doctor_version: env!("CARGO_PKG_VERSION").to_owned(),
+            build_revision: option_env!("PI_DOCTOR_BUILD_REVISION")
+                .filter(|value| !value.is_empty())
+                .map(str::to_owned),
+            target_architecture: std::env::consts::ARCH.to_owned(),
+            supported_os: SupportedOs::default(),
+            probe_availability: ProbeAvailabilitySummary::default(),
+        }
+    }
+
+    pub fn with_supported_os(mut self, supported_os: SupportedOs) -> Self {
+        self.supported_os = supported_os;
+        self
+    }
+
+    pub fn with_probe_availability(mut self, probe_availability: ProbeAvailabilitySummary) -> Self {
+        self.probe_availability = probe_availability;
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SupportedOs {
+    pub supported: bool,
+    pub family: Option<String>,
+    pub version: Option<String>,
+    pub codename: Option<String>,
+    pub reason: Option<String>,
+}
+
+impl Default for SupportedOs {
+    fn default() -> Self {
+        Self {
+            supported: false,
+            family: None,
+            version: None,
+            codename: None,
+            reason: Some("support status was not evaluated".to_owned()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct ProbeAvailabilitySummary {
+    pub total: usize,
+    pub success: usize,
+    pub unavailable: usize,
+    pub permission_denied: usize,
+    pub command_failed: usize,
+    pub parse_failed: usize,
+    pub timed_out: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

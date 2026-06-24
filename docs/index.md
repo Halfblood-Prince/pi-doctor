@@ -54,5 +54,6 @@ If you are integrating with `pi-doctor` from scripts or CI:
 - prefer `pi-doctor check --json`
 - gate behavior on `schema_version`
 - inspect `probe_health` before treating missing data as healthy
+- validate reports against `schema/pi-doctor-report.v1.schema.json`
 - use exit codes only for coarse status
 - ignore unknown JSON fields

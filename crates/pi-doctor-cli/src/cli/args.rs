@@ -86,10 +86,15 @@ impl DoctorTarget {
 
 impl Cli {
     pub fn validate(self) -> clap::error::Result<Self> {
-        if self.json && !matches!(self.command, Commands::Check {}) {
+        if self.json
+            && !matches!(
+                self.command,
+                Commands::Check {} | Commands::Doctor { .. } | Commands::SupportBundle
+            )
+        {
             return Err(Self::command().error(
                 ErrorKind::ArgumentConflict,
-                "`--json` is only supported with `pi-doctor check`",
+                "`--json` is supported with `pi-doctor check`, `pi-doctor doctor`, and `pi-doctor support-bundle`",
             ));
         }
 
@@ -104,16 +109,25 @@ mod tests {
 
     #[test]
     fn rejects_json_for_non_check_commands() {
-        let error = Cli::try_parse_from(["pi-doctor", "--json", "doctor", "gpio"])
+        let error = Cli::try_parse_from(["pi-doctor", "--json", "explain", "python"])
             .and_then(Cli::validate)
-            .expect_err("json should be rejected for non-check commands");
+            .expect_err("json should be rejected for explain commands");
 
         assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
         assert!(
             error
                 .to_string()
-                .contains("only supported with `pi-doctor check`")
+                .contains("is supported with `pi-doctor check`")
         );
+    }
+
+    #[test]
+    fn accepts_json_for_focused_doctor_commands() {
+        let cli = Cli::try_parse_from(["pi-doctor", "--json", "doctor", "camera"])
+            .and_then(Cli::validate)
+            .expect("doctor json should be accepted");
+
+        assert!(cli.json);
     }
 
     #[test]

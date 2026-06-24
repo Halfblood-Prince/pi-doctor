@@ -10,4 +10,5 @@ description.workspace = true
 [dependencies]
 log.workspace = true
 pi-doctor-core = { path = "../pi-doctor-core" }
+serde.workspace = true
 thiserror.workspace = true

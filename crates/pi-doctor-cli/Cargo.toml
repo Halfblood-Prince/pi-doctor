@@ -17,6 +17,7 @@ pi-doctor-bundle = { path = "../pi-doctor-bundle" }
 pi-doctor-core = { path = "../pi-doctor-core" }
 pi-doctor-probes = { path = "../pi-doctor-probes" }
 pi-doctor-report = { path = "../pi-doctor-report" }
+serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]

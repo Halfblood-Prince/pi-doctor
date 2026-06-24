@@ -242,9 +242,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
 
         let report = Report {
-            metadata: ReportMetadata {
-                command: "check".to_owned(),
-            },
+            metadata: ReportMetadata::new("check"),
             schema_version: "1.0.0",
             overall_status: OverallStatus::Healthy,
             probe_health: Vec::new(),

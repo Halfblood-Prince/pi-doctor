@@ -1,5 +1,5 @@
 use clap::Parser;
-use pi_doctor::cli::args::{Cli, Commands};
+use pi_doctor::cli::args::{Cli, Commands, DoctorTarget};
 use pi_doctor::output::RenderSettings;
 use pi_doctor_core::{CommandOutput, ProbeContext};
 use serde_json::Value;
@@ -37,6 +37,15 @@ fn json_contract_exposes_expected_top_level_fields() {
     }
 
     assert_eq!(value["schema_version"], "1.0.0");
+    let probe_names = value["probe_health"]
+        .as_array()
+        .expect("probe health should be an array")
+        .iter()
+        .map(|health| health["name"].as_str().expect("probe name should be string"))
+        .collect::<Vec<_>>();
+    let mut sorted_probe_names = probe_names.clone();
+    sorted_probe_names.sort_unstable();
+    assert_eq!(probe_names, sorted_probe_names);
 }
 
 #[test]
@@ -69,6 +78,27 @@ fn check_accepts_json_mode() {
 
     assert!(cli.json);
     assert!(matches!(cli.command, Commands::Check {}));
+}
+
+#[test]
+fn doctor_camera_accepts_json_mode() {
+    let response = pi_doctor::run(Cli {
+        json: true,
+        quiet: false,
+        verbose: false,
+        no_color: false,
+        timeout: 1,
+        command: Commands::Doctor {
+            target: DoctorTarget::Camera,
+        },
+    })
+    .expect("doctor camera json should render");
+
+    let value: Value = serde_json::from_str(&response.output).expect("json should parse");
+    assert_eq!(value["schema_version"], "1.0.0");
+    assert_eq!(value["target"], "camera");
+    assert_eq!(value["metadata"]["command"], "doctor camera");
+    assert_eq!(response.exit_code, 0);
 }
 
 #[test]

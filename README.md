@@ -5,8 +5,6 @@
 [![Release](https://github.com/Halfblood-Prince/pi-doctor/actions/workflows/release.yml/badge.svg)](https://github.com/Halfblood-Prince/pi-doctor/actions/workflows/release.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-Human-first Raspberry Pi diagnostics.
-
 `pi-doctor` is a read-only CLI for checking common Raspberry Pi problems:
 identity mismatches, thermal throttling, `config.txt` drift, GPIO conflicts,
 camera detection failures, and Python environment pitfalls.
@@ -17,29 +15,33 @@ stable schema.
 
 ## Install
 
-### Release Script
+### Release Archive
 
 ```bash
-curl -fsSL https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh | sh
+version=0.1.0
+target=x86_64-unknown-linux-gnu
+curl -fsSLO "https://github.com/Halfblood-Prince/pi-doctor/releases/download/v${version}/pi-doctor-v${version}-${target}.tar.gz"
+curl -fsSLO "https://github.com/Halfblood-Prince/pi-doctor/releases/download/v${version}/pi-doctor-v${version}-${target}.tar.gz.sha256"
+sha256sum -c "pi-doctor-v${version}-${target}.tar.gz.sha256"
+tar -tzf "pi-doctor-v${version}-${target}.tar.gz"
+tar -xzf "pi-doctor-v${version}-${target}.tar.gz"
+mkdir -p ~/.local/bin
+install -m 0755 "pi-doctor-v${version}-${target}/pi-doctor" ~/.local/bin/pi-doctor
 ```
 
-Install into a custom directory:
+Verify release provenance when GitHub CLI is available:
 
 ```bash
-curl -fsSL https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh | sh -s -- --bin-dir ~/.local/bin
+gh attestation verify "pi-doctor-v${version}-${target}.tar.gz" \
+  --repo Halfblood-Prince/pi-doctor
 ```
 
-Install a specific version:
+### Verified Installer
 
 ```bash
-curl -fsSL https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh | sh -s -- --version 0.1.0
+curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh
+bash install.sh --version 0.1.0 --bin-dir ~/.local/bin
 ```
-
-### Manual Archive
-
-Download a release archive from
-[GitHub Releases](https://github.com/Halfblood-Prince/pi-doctor/releases),
-extract it, and place `pi-doctor` on your `PATH`.
 
 ### Debian
 

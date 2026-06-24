@@ -7,11 +7,15 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
     name: build-${{ matrix.target }}
     runs-on: ubuntu-latest
+    env:
+      PI_DOCTOR_BUILD_REVISION: ${{ github.sha }}
     strategy:
       fail-fast: false
       matrix:
@@ -22,15 +26,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           targets: ${{ matrix.target }}
 
       - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+        run: cargo install cross --git https://github.com/cross-rs/cross --rev 88f49ff79e777bef6d3564531636ee4d3cc2f8d2 --locked
 
       - name: Build release binary
         run: cross build -p pi-doctor --release --target ${{ matrix.target }}
@@ -42,13 +46,30 @@ jobs:
             --target ${{ matrix.target }} \
             --binary target/${{ matrix.target }}/release/pi-doctor
 
+      - name: Generate SBOM
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          python3 scripts/generate-sbom.py \
+            --version "$version" \
+            --target ${{ matrix.target }} \
+            --output "dist/pi-doctor-v${version}-${{ matrix.target }}.sbom.json"
+
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-path: |
+            dist/pi-doctor-v*-${{ matrix.target }}.tar.gz
+            dist/pi-doctor-v*-${{ matrix.target }}.tar.gz.sha256
+            dist/pi-doctor-v*-${{ matrix.target }}.sbom.json
+
       - name: Upload target artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-${{ matrix.target }}
           path: |
             dist/pi-doctor-v*-${{ matrix.target }}.tar.gz
             dist/pi-doctor-v*-${{ matrix.target }}.tar.gz.sha256
+            dist/pi-doctor-v*-${{ matrix.target }}.sbom.json
 
   publish:
     needs: build
@@ -56,17 +77,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: dist
 
       - name: Flatten artifact layout
         run: |
-          find dist -type f -name '*.tar.gz' -exec cp {} dist/ \;
-          find dist -type f -name '*.sha256' -exec cp {} dist/ \;
+          find dist -mindepth 2 -type f -name '*.tar.gz' -exec cp {} dist/ \;
+          find dist -mindepth 2 -type f -name '*.sha256' -exec cp {} dist/ \;
+          find dist -mindepth 2 -type f -name '*.sbom.json' -exec cp {} dist/ \;
 
       - name: Build combined checksums
         run: |
@@ -77,10 +99,11 @@ jobs:
           cp scripts/install.sh dist/install.sh
 
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
             dist/*.tar.gz
             dist/*.sha256
+            dist/*.sbom.json
             dist/SHA256SUMS
             dist/install.sh

@@ -32,8 +32,11 @@ fn emitted_json_matches_documented_schema_structure() {
     );
 
     assert_eq!(value["metadata"]["command"], "check");
+    assert_eq!(value["metadata"]["pi_doctor_version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(value["metadata"]["supported_os"]["supported"], true);
+    assert_eq!(value["metadata"]["probe_availability"]["total"], 1);
     assert_eq!(value["schema_version"], "1.0.0");
-    assert_eq!(value["overall_status"], "degraded");
+    assert_eq!(value["overall_status"], "critical");
     assert_eq!(value["probe_health"][0]["name"], "board");
     assert_eq!(value["probe_health"][0]["outcome"], "success");
 
@@ -79,7 +82,7 @@ fn emitted_json_matches_documented_schema_structure() {
         ]
     );
     assert_eq!(value["findings"][0]["severity"], "warning");
-    assert_eq!(value["findings"][0]["impact"], "degraded");
+    assert_eq!(value["findings"][0]["impact"], "critical");
 }
 
 fn sample_report() -> Report {
@@ -100,17 +103,27 @@ fn sample_report() -> Report {
     let power_finding = finding(
         "throttling.undervoltage_now",
         Severity::Warning,
-        Impact::Degraded,
+        Impact::Critical,
         "Under-voltage is active now",
         "Firmware telemetry reports an active under-voltage condition.",
     );
 
     Report {
-        metadata: ReportMetadata {
-            command: "check".to_owned(),
-        },
+        metadata: ReportMetadata::new("check")
+            .with_supported_os(pi_doctor_core::SupportedOs {
+                supported: true,
+                family: Some("Debian GNU/Linux".to_owned()),
+                version: Some("12".to_owned()),
+                codename: Some("bookworm".to_owned()),
+                reason: None,
+            })
+            .with_probe_availability(pi_doctor_core::ProbeAvailabilitySummary {
+                total: 1,
+                success: 1,
+                ..pi_doctor_core::ProbeAvailabilitySummary::default()
+        }),
         schema_version: "1.0.0",
-        overall_status: OverallStatus::Degraded,
+        overall_status: OverallStatus::Critical,
         probe_health: vec![ProbeHealth {
             name: "board",
             outcome: ProbeOutcome::Success,

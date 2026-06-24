@@ -4,10 +4,29 @@ expression: json
 ---
 {
   "metadata": {
-    "command": "check"
+    "command": "check",
+    "pi_doctor_version": "0.1.0",
+    "build_revision": null,
+    "target_architecture": "test-arch",
+    "supported_os": {
+      "supported": false,
+      "family": null,
+      "version": null,
+      "codename": null,
+      "reason": "support status was not evaluated"
+    },
+    "probe_availability": {
+      "total": 0,
+      "success": 0,
+      "unavailable": 0,
+      "permission_denied": 0,
+      "command_failed": 0,
+      "parse_failed": 0,
+      "timed_out": 0
+    }
   },
   "schema_version": "1.0.0",
-  "overall_status": "degraded",
+  "overall_status": "critical",
   "probe_health": [],
   "system": null,
   "config": null,
@@ -20,7 +39,7 @@ expression: json
         {
           "id": "throttling.undervoltage_now",
           "severity": "warning",
-          "impact": "degraded",
+          "impact": "critical",
           "title": "Under-voltage is active now",
           "summary": "Firmware telemetry reports an active under-voltage condition.",
           "evidence": [],
@@ -61,7 +80,7 @@ expression: json
     {
       "id": "throttling.undervoltage_now",
       "severity": "warning",
-      "impact": "degraded",
+      "impact": "critical",
       "title": "Under-voltage is active now",
       "summary": "Firmware telemetry reports an active under-voltage condition.",
       "evidence": [],

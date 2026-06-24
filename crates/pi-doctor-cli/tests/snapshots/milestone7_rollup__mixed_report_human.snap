@@ -3,7 +3,7 @@ source: crates/pi-doctor-cli/tests/milestone7_rollup.rs
 expression: "pi_doctor_report::human::render(&report)"
 ---
 pi-doctor check
-Overall status: degraded
+Overall status: critical
 
 Power findings
 [warning] Under-voltage is active now

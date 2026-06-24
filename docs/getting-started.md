@@ -2,28 +2,27 @@
 
 ## Install
 
-### Linux install script
+### Release archive
 
 ```bash
-curl -fsSL https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh | sh
+version=0.1.0
+target=x86_64-unknown-linux-gnu
+curl -fsSLO "https://github.com/Halfblood-Prince/pi-doctor/releases/download/v${version}/pi-doctor-v${version}-${target}.tar.gz"
+curl -fsSLO "https://github.com/Halfblood-Prince/pi-doctor/releases/download/v${version}/pi-doctor-v${version}-${target}.tar.gz.sha256"
+sha256sum -c "pi-doctor-v${version}-${target}.tar.gz.sha256"
+gh attestation verify "pi-doctor-v${version}-${target}.tar.gz" \
+  --repo Halfblood-Prince/pi-doctor
+tar -xzf "pi-doctor-v${version}-${target}.tar.gz"
+mkdir -p ~/.local/bin
+install -m 0755 "pi-doctor-v${version}-${target}/pi-doctor" ~/.local/bin/pi-doctor
 ```
 
-Install into a custom directory:
+### Verified installer
 
 ```bash
-curl -fsSL https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh | sh -s -- --bin-dir ~/.local/bin
+curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh
+bash install.sh --version 0.1.0 --bin-dir ~/.local/bin
 ```
-
-Install a specific version:
-
-```bash
-curl -fsSL https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh | sh -s -- --version 0.1.0
-```
-
-### Manual release archive
-
-Download the archive for your platform from GitHub Releases, extract it, and
-copy `pi-doctor` into a directory on your `PATH`.
 
 ### Homebrew
 

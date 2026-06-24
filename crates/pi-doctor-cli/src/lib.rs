@@ -11,19 +11,22 @@ use log::warn;
 use pi_doctor_bundle::{BundleInput, write_bundle};
 use pi_doctor_core::{
     CameraSummary, Finding, FindingDomain, FindingGroup, Impact, OverallStatus, ProbeContext,
-    ProbeHealth, ProbeOutcome, Report, ReportMetadata, Severity, SystemSummary,
+    ProbeAvailabilitySummary, ProbeHealth, ProbeOutcome, Report, ReportMetadata, Severity,
+    SupportedOs, SystemSummary,
 };
 use pi_doctor_probes::{
     ProbeError,
     board::{BoardProbe, board_findings},
     camera::CameraProbe,
     config_txt::ConfigTxtProbe,
+    gpio::{GpioAnalysis, GpioProbe, gpio_findings},
     kernel::KernelProbe,
     os::OsProbe,
     python::PythonProbe,
     thermal::{ThermalProbe, thermal_findings},
     throttling::{ThrottlingProbe, throttling_findings},
 };
+use serde::Serialize;
 use std::io::IsTerminal;
 use std::time::Duration;
 
@@ -39,8 +42,8 @@ pub fn run(cli: Cli) -> Result<CliResponse> {
     match cli.command {
         Commands::Check {} => execute_check(settings, timeout),
         Commands::Explain { topic } => execute_explain(topic, timeout),
-        Commands::SupportBundle => execute_support_bundle(timeout),
-        Commands::Doctor { target } => execute_doctor(target, timeout),
+        Commands::SupportBundle => execute_support_bundle(settings, timeout),
+        Commands::Doctor { target } => execute_doctor(target, settings, timeout),
         Commands::Completions { shell } => execute_completions(shell),
     }
 }
@@ -113,23 +116,26 @@ pub fn build_check_report(ctx: &ProbeContext) -> Report {
     sort_findings(&mut findings);
     let groups = group_findings(&findings);
 
+    let system = SystemSummary {
+        board_model: board.value.model,
+        board_revision: board.value.revision,
+        architecture: kernel.value.architecture,
+        distro_name: os.value.distro_name,
+        distro_version: os.value.distro_version,
+        distro_codename: os.value.distro_codename,
+        kernel_release: kernel.value.release,
+        is_raspberry_pi: board.value.is_raspberry_pi,
+    };
+    let metadata = ReportMetadata::new("check")
+        .with_supported_os(supported_os_detection(&system))
+        .with_probe_availability(probe_availability_summary(&probe_health));
+
     Report {
-        metadata: ReportMetadata {
-            command: "check".to_owned(),
-        },
+        metadata,
         schema_version: "1.0.0",
         overall_status: overall_status(&findings),
         probe_health,
-        system: Some(SystemSummary {
-            board_model: board.value.model,
-            board_revision: board.value.revision,
-            architecture: kernel.value.architecture,
-            distro_name: os.value.distro_name,
-            distro_version: os.value.distro_version,
-            distro_codename: os.value.distro_codename,
-            kernel_release: kernel.value.release,
-            is_raspberry_pi: board.value.is_raspberry_pi,
-        }),
+        system: Some(system),
         config: Some(config.value.summary),
         camera: Some(camera.value.summary),
         python: Some(python.value.summary),
@@ -188,6 +194,78 @@ fn probe_outcome_for_error(error: &ProbeError) -> ProbeOutcome {
     }
 }
 
+fn probe_availability_summary(probe_health: &[ProbeHealth]) -> ProbeAvailabilitySummary {
+    let mut summary = ProbeAvailabilitySummary {
+        total: probe_health.len(),
+        ..ProbeAvailabilitySummary::default()
+    };
+
+    for health in probe_health {
+        match health.outcome {
+            ProbeOutcome::Success => summary.success += 1,
+            ProbeOutcome::Unavailable => summary.unavailable += 1,
+            ProbeOutcome::PermissionDenied => summary.permission_denied += 1,
+            ProbeOutcome::CommandFailed => summary.command_failed += 1,
+            ProbeOutcome::ParseFailed => summary.parse_failed += 1,
+            ProbeOutcome::TimedOut => summary.timed_out += 1,
+        }
+    }
+
+    summary
+}
+
+fn supported_os_detection(system: &SystemSummary) -> SupportedOs {
+    let family = system.distro_name.clone();
+    let version = system.distro_version.clone();
+    let codename = system.distro_codename.clone();
+    let architecture = system.architecture.as_deref().unwrap_or_default();
+    let supported_arch = architecture == "aarch64" || architecture.starts_with("arm");
+
+    if !system.is_raspberry_pi {
+        return SupportedOs {
+            supported: false,
+            family,
+            version,
+            codename,
+            reason: Some("host is not detected as Raspberry Pi hardware".to_owned()),
+        };
+    }
+
+    if !supported_arch {
+        return SupportedOs {
+            supported: false,
+            family,
+            version,
+            codename,
+            reason: Some(format!("architecture `{architecture}` is outside the supported matrix")),
+        };
+    }
+
+    match codename.as_deref() {
+        Some("bookworm") | Some("trixie") => SupportedOs {
+            supported: true,
+            family,
+            version,
+            codename,
+            reason: None,
+        },
+        Some(value) => SupportedOs {
+            supported: false,
+            family,
+            version,
+            codename,
+            reason: Some(format!("OS codename `{value}` is outside the supported matrix")),
+        },
+        None => SupportedOs {
+            supported: false,
+            family,
+            version,
+            codename,
+            reason: Some("OS codename was unavailable".to_owned()),
+        },
+    }
+}
+
 fn probe_unavailable_finding(name: &'static str, error: &ProbeError) -> Finding {
     let (id, title, impact) = match name {
         "board" => (
@@ -224,6 +302,11 @@ fn probe_unavailable_finding(name: &'static str, error: &ProbeError) -> Finding 
             "camera.unavailable",
             "Camera stack could not be inspected",
             Impact::Degraded,
+        ),
+        "gpio" => (
+            "gpio.unavailable",
+            "GPIO state could not be inspected",
+            Impact::Warning,
         ),
         "python" => (
             "python.unavailable",
@@ -272,12 +355,15 @@ fn execute_explain(topic: ExplainTopic, timeout: Duration) -> Result<CliResponse
     })
 }
 
-fn execute_support_bundle(timeout: Duration) -> Result<CliResponse> {
+fn execute_support_bundle(settings: output::RenderSettings, timeout: Duration) -> Result<CliResponse> {
     use std::collections::BTreeMap;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     let ctx = ProbeContext::new().with_timeout(timeout);
     let report = build_check_report(&ctx);
+    let bundle_metadata = ReportMetadata::new("support-bundle")
+        .with_supported_os(report.metadata.supported_os.clone())
+        .with_probe_availability(report.metadata.probe_availability.clone());
     let mut extra_files = BTreeMap::new();
 
     extra_files.insert(
@@ -347,18 +433,40 @@ fn execute_support_bundle(timeout: Duration) -> Result<CliResponse> {
     )
     .context("failed to write support bundle")?;
 
-    Ok(CliResponse {
-        output: format!(
-            "Support bundle written to {}\nFiles:\n{}\n",
-            result.bundle_dir.display(),
-            result.files.join("\n")
-        ),
-        exit_code: 0,
-    })
+    if matches!(settings.mode, output::OutputMode::Json) {
+        let response = SupportBundleJson {
+            metadata: bundle_metadata,
+            schema_version: "1.0.0",
+            bundle_dir: result.bundle_dir.display().to_string(),
+            files: result.files.clone(),
+            report_schema_version: "1.0.0",
+        };
+        Ok(CliResponse {
+            output: format!("{}\n", serde_json::to_string_pretty(&response)?),
+            exit_code: 0,
+        })
+    } else {
+        Ok(CliResponse {
+            output: format!(
+                "Support bundle written to {}\nFiles:\n{}\n",
+                result.bundle_dir.display(),
+                result.files.join("\n")
+            ),
+            exit_code: 0,
+        })
+    }
 }
 
-fn execute_doctor(target: DoctorTarget, timeout: Duration) -> Result<CliResponse> {
+fn execute_doctor(
+    target: DoctorTarget,
+    settings: output::RenderSettings,
+    timeout: Duration,
+) -> Result<CliResponse> {
     let ctx = ProbeContext::new().with_timeout(timeout);
+    if matches!(settings.mode, output::OutputMode::Json) {
+        return render_doctor_json(target, &ctx);
+    }
+
     let output = match target {
         DoctorTarget::Camera => doctor::camera::render(&ctx),
         DoctorTarget::Gpio => doctor::gpio::render(&ctx),
@@ -366,6 +474,95 @@ fn execute_doctor(target: DoctorTarget, timeout: Duration) -> Result<CliResponse
 
     Ok(CliResponse {
         output,
+        exit_code: 0,
+    })
+}
+
+#[derive(Debug, Serialize)]
+struct DoctorJson<T>
+where
+    T: Serialize,
+{
+    metadata: ReportMetadata,
+    schema_version: &'static str,
+    target: &'static str,
+    summary: T,
+    findings: Vec<Finding>,
+}
+
+#[derive(Debug, Serialize)]
+struct SupportBundleJson {
+    metadata: ReportMetadata,
+    schema_version: &'static str,
+    bundle_dir: String,
+    files: Vec<String>,
+    report_schema_version: &'static str,
+}
+
+fn render_doctor_json(target: DoctorTarget, ctx: &ProbeContext) -> Result<CliResponse> {
+    match target {
+        DoctorTarget::Camera => {
+            let (analysis, mut outcome, findings) = match CameraProbe.collect(ctx) {
+                Ok(analysis) => {
+                    let findings = analysis.findings.clone();
+                    (analysis, ProbeOutcome::Success, findings)
+                }
+                Err(error) => (
+                    Default::default(),
+                    probe_outcome_for_error(&error),
+                    vec![probe_unavailable_finding("camera", &error)],
+                ),
+            };
+            if outcome == ProbeOutcome::Success && analysis.summary.tool_used.is_none() {
+                outcome = ProbeOutcome::Unavailable;
+            }
+            render_focused_json(DoctorJson {
+                metadata: metadata_for_single_probe("doctor camera", outcome),
+                schema_version: "1.0.0",
+                target: "camera",
+                summary: analysis.summary,
+                findings,
+            })
+        }
+        DoctorTarget::Gpio => {
+            let (analysis, outcome, findings) = match GpioProbe.collect(ctx) {
+                Ok(analysis) => {
+                    let findings = gpio_findings(&analysis);
+                    (analysis, ProbeOutcome::Success, findings)
+                }
+                Err(error) => (
+                    Default::default(),
+                    probe_outcome_for_error(&error),
+                    vec![probe_unavailable_finding("gpio", &error)],
+                ),
+            };
+            render_focused_json(DoctorJson::<GpioAnalysis> {
+                metadata: metadata_for_single_probe("doctor gpio", outcome),
+                schema_version: "1.0.0",
+                target: "gpio",
+                summary: analysis,
+                findings,
+            })
+        }
+    }
+}
+
+fn metadata_for_single_probe(command: &'static str, outcome: ProbeOutcome) -> ReportMetadata {
+    ReportMetadata::new(command).with_probe_availability(probe_availability_summary(&[
+        ProbeHealth {
+            name: command,
+            outcome,
+            detail: None,
+        },
+    ]))
+}
+
+fn render_focused_json<T>(response: T) -> Result<CliResponse>
+where
+    T: Serialize,
+{
+    Ok(CliResponse {
+        output: format!("{}\n", serde_json::to_string_pretty(&response)?),
         exit_code: 0,
     })
 }

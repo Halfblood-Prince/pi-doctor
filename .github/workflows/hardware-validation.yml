@@ -1,0 +1,69 @@
+name: Hardware Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  PI_DOCTOR_BUILD_REVISION: ${{ github.sha }}
+
+jobs:
+  native-arm:
+    name: ${{ matrix.board }} ${{ matrix.os }} ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: pi3
+            os: bookworm-lite
+            arch: armv7
+            runs_on: [self-hosted, linux, armv7, raspberry-pi-3, bookworm]
+          - board: pi4
+            os: bookworm-desktop
+            arch: aarch64
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-4, bookworm]
+          - board: pi5
+            os: trixie-lite
+            arch: aarch64
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-5, trixie]
+          - board: zero2w
+            os: bookworm-lite
+            arch: armv7
+            runs_on: [self-hosted, linux, armv7, raspberry-pi-zero-2-w, bookworm]
+          - board: compute-module
+            os: bookworm-lite
+            arch: aarch64
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-compute-module, bookworm]
+    runs-on: ${{ matrix.runs_on }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Build native release binary
+        run: cargo build -p pi-doctor --release --locked
+
+      - name: Run native release check
+        run: |
+          set +e
+          ./target/release/pi-doctor --json check > check.json
+          status=$?
+          set -e
+          case "$status" in
+            0|1|2|3) ;;
+            *) echo "unexpected check status: $status" >&2; exit 1 ;;
+          esac
+
+      - name: Validate native report schema
+        run: |
+          python3 -m pip install jsonschema==4.23.0
+          python3 scripts/validate-report-schema.py \
+            --schema schema/pi-doctor-report.v1.schema.json \
+            --registry schema/finding-registry.v1.json \
+            check.json

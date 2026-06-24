@@ -27,6 +27,9 @@ fn mixed_report_json_snapshot() {
 }
 
 fn mixed_report() -> Report {
+    let mut metadata = ReportMetadata::new("check");
+    metadata.target_architecture = "test-arch".to_owned();
+
     let config_finding = finding(
         "config_txt.stale_legacy_path",
         Severity::Warning,
@@ -44,17 +47,15 @@ fn mixed_report() -> Report {
     let power_finding = finding(
         "throttling.undervoltage_now",
         Severity::Warning,
-        Impact::Degraded,
+        Impact::Critical,
         "Under-voltage is active now",
         "Firmware telemetry reports an active under-voltage condition.",
     );
 
     Report {
-        metadata: ReportMetadata {
-            command: "check".to_owned(),
-        },
+        metadata,
         schema_version: "1.0.0",
-        overall_status: OverallStatus::Degraded,
+        overall_status: OverallStatus::Critical,
         probe_health: Vec::new(),
         system: None,
         config: None,
