@@ -104,43 +104,51 @@ pub fn throttling_findings(details: ThrottlingDetails) -> Vec<Finding> {
 
     push_flag_finding(
         &mut findings,
-        details.undervoltage_now,
-        "throttling.undervoltage_now",
-        Impact::Critical,
-        "Under-voltage is active now",
-        "Firmware telemetry reports an active under-voltage condition.",
-        "Why this matters: unstable power can cause throttling, crashes, and peripheral instability.",
-        "What to run next: check the power supply, cable quality, and inline voltage drops, then rerun `pi-doctor explain throttling`.",
+        FlagFinding {
+            active: details.undervoltage_now,
+            id: "throttling.undervoltage_now",
+            impact: Impact::Critical,
+            title: "Under-voltage is active now",
+            summary: "Firmware telemetry reports an active under-voltage condition.",
+            why: "Why this matters: unstable power can cause throttling, crashes, and peripheral instability.",
+            next: "What to run next: check the power supply, cable quality, and inline voltage drops, then rerun `pi-doctor explain throttling`.",
+        },
     );
     push_flag_finding(
         &mut findings,
-        details.undervoltage_happened,
-        "throttling.undervoltage_happened",
-        Impact::Warning,
-        "Under-voltage happened historically",
-        "Firmware telemetry shows the board experienced under-voltage since boot.",
-        "Why this matters: even if power looks stable now, historical undervoltage can explain intermittent slowdowns or resets.",
-        "What to run next: inspect recent load spikes, attached peripherals, and power headroom.",
+        FlagFinding {
+            active: details.undervoltage_happened,
+            id: "throttling.undervoltage_happened",
+            impact: Impact::Warning,
+            title: "Under-voltage happened historically",
+            summary: "Firmware telemetry shows the board experienced under-voltage since boot.",
+            why: "Why this matters: even if power looks stable now, historical undervoltage can explain intermittent slowdowns or resets.",
+            next: "What to run next: inspect recent load spikes, attached peripherals, and power headroom.",
+        },
     );
     push_flag_finding(
         &mut findings,
-        details.throttled_now,
-        "throttling.active",
-        Impact::Critical,
-        "Throttling is active",
-        "Firmware telemetry reports active throttling right now.",
-        "Why this matters: the board is reducing performance to protect itself or stay within power limits.",
-        "What to run next: inspect power quality and thermals, then compare with `vcgencmd get_throttled` after the system cools down.",
+        FlagFinding {
+            active: details.throttled_now,
+            id: "throttling.active",
+            impact: Impact::Critical,
+            title: "Throttling is active",
+            summary: "Firmware telemetry reports active throttling right now.",
+            why: "Why this matters: the board is reducing performance to protect itself or stay within power limits.",
+            next: "What to run next: inspect power quality and thermals, then compare with `vcgencmd get_throttled` after the system cools down.",
+        },
     );
     push_flag_finding(
         &mut findings,
-        details.soft_temperature_limit_now,
-        "throttling.soft_temp_limit_now",
-        Impact::Critical,
-        "Soft thermal limit is active",
-        "Firmware telemetry reports the soft thermal limit is currently active.",
-        "Why this matters: the system is hot enough that performance may already be reduced.",
-        "What to run next: improve cooling and airflow, then watch whether the bitmask clears.",
+        FlagFinding {
+            active: details.soft_temperature_limit_now,
+            id: "throttling.soft_temp_limit_now",
+            impact: Impact::Critical,
+            title: "Soft thermal limit is active",
+            summary: "Firmware telemetry reports the soft thermal limit is currently active.",
+            why: "Why this matters: the system is hot enough that performance may already be reduced.",
+            next: "What to run next: improve cooling and airflow, then watch whether the bitmask clears.",
+        },
     );
 
     findings
@@ -182,25 +190,26 @@ fn bit(mask: u32, shift: u8) -> bool {
     mask & (1_u32 << shift) != 0
 }
 
-fn push_flag_finding(
-    findings: &mut Vec<Finding>,
+struct FlagFinding {
     active: bool,
     id: &'static str,
     impact: Impact,
-    title: &str,
-    summary: &str,
-    why: &str,
-    next: &str,
-) {
-    if active {
+    title: &'static str,
+    summary: &'static str,
+    why: &'static str,
+    next: &'static str,
+}
+
+fn push_flag_finding(findings: &mut Vec<Finding>, flag: FlagFinding) {
+    if flag.active {
         findings.push(Finding {
-            id,
+            id: flag.id,
             severity: Severity::Warning,
-            impact,
-            title: title.to_owned(),
-            summary: summary.to_owned(),
+            impact: flag.impact,
+            title: flag.title.to_owned(),
+            summary: flag.summary.to_owned(),
             evidence: Vec::new(),
-            suggested_actions: vec![why.to_owned(), next.to_owned()],
+            suggested_actions: vec![flag.why.to_owned(), flag.next.to_owned()],
         });
     }
 }

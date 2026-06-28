@@ -31,7 +31,7 @@ pub fn render(ctx: &ProbeContext) -> String {
             "  tool used: {}",
             summary.tool_used.as_deref().unwrap_or("none")
         ),
-        format!("  available tools: {}", available_tools),
+        format!("  available tools: {available_tools}"),
         format!(
             "  video devices: {}",
             if summary.video_devices.is_empty() {

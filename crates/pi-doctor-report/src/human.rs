@@ -90,14 +90,14 @@ fn render_finding(lines: &mut Vec<String>, finding: &Finding, options: RenderOpt
 
     if matches!(options.verbosity, Verbosity::Verbose) {
         for evidence in &finding.evidence {
-            lines.push(format!("  evidence: {}", evidence));
+            lines.push(format!("  evidence: {evidence}"));
         }
         for action in &finding.suggested_actions {
-            lines.push(format!("  next: {}", action));
+            lines.push(format!("  next: {action}"));
         }
     } else if matches!(options.verbosity, Verbosity::Normal) {
         for action in &finding.suggested_actions {
-            lines.push(format!("  next: {}", action));
+            lines.push(format!("  next: {action}"));
         }
     }
 
