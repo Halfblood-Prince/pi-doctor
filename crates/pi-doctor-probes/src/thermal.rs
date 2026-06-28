@@ -276,11 +276,7 @@ mod tests {
     #[test]
     fn selects_cpu_thermal_zone_by_type_instead_of_assuming_zone_zero() {
         let root = temp_fixture_root();
-        write_fixture_file(
-            &root,
-            "sys/class/thermal/thermal_zone0/type",
-            "battery\n",
-        );
+        write_fixture_file(&root, "sys/class/thermal/thermal_zone0/type", "battery\n");
         write_fixture_file(&root, "sys/class/thermal/thermal_zone0/temp", "90000\n");
         write_fixture_file(
             &root,

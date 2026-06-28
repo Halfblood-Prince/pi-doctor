@@ -24,12 +24,14 @@ notes, even before package `1.0.0`.
 
 Every public release should go through release candidates:
 
-1. Tag `vX.Y.Z-rc.1`.
-2. Build release archives, checksums, SBOMs, and attestations.
-3. Run CI, Supply Chain, Docs, and the release workflow.
-4. Run hardware validation on supported Raspberry Pi OS images.
-5. Publish notes listing known limitations and validation gaps.
-6. Repeat with `rc.2`, `rc.3`, and so on until blockers are closed.
+1. Set `workspace.package.version` in `Cargo.toml` to `X.Y.Z-rc.1`.
+2. Tag `vX.Y.Z-rc.1`.
+3. Build release archives, checksums, and SBOMs.
+4. Run CI, Supply Chain, Docs, and the release workflow.
+5. Run native hardware validation on supported Raspberry Pi OS images.
+6. Attest and publish only after native hardware validation passes.
+7. Publish notes listing known limitations and validation gaps.
+8. Repeat with `rc.2`, `rc.3`, and so on until blockers are closed.
 
 Release candidates are not promoted to Debian, Homebrew, or APT channels.
 
@@ -41,6 +43,8 @@ Before a final release:
 - confirm the Git tag version matches `workspace.package.version` in `Cargo.toml`
 - run subsystem fixtures and parser corpus tests
 - test exact release archives, not only local build outputs
+- pass native Raspberry Pi release validation for Pi 3, Pi 4, Pi 5, Zero 2 W,
+  Compute Module, camera, no-camera, and thermal fixture runners
 - verify archive checksums, SBOMs, and provenance attestations
 - test upgrade, downgrade, rollback, and uninstall paths
 - confirm known limitations are current

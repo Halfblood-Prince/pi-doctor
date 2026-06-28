@@ -1043,11 +1043,7 @@ mod tests {
                 &["--help"],
                 CommandOutput::Success("usage".to_owned()),
             )
-            .with_command_output(
-                "rpicam-hello",
-                &["--list-cameras"],
-                CommandOutput::TimedOut,
-            )
+            .with_command_output("rpicam-hello", &["--list-cameras"], CommandOutput::TimedOut)
             .with_command_output("libcamera-hello", &["--help"], CommandOutput::Missing)
             .with_command_output("python3", &["--version"], CommandOutput::Missing);
 

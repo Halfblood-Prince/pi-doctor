@@ -45,6 +45,10 @@ Do not publish package channels until the matching GitHub release includes:
 The manual hardware validation workflow can test exact published archives by
 passing `release_version` in `workflow_dispatch`.
 
+The tag release workflow gates publication on native Raspberry Pi validation.
+It builds archives first, then self-hosted Pi runners download and install those
+exact workflow artifacts before attestation and GitHub Release publication.
+
 ## Package Channels
 
 Debian packaging in `debian/` is maintained for mentors review. Publish to

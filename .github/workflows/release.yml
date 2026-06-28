@@ -91,14 +91,6 @@ jobs:
             --target ${{ matrix.target }} \
             --output "dist/pi-doctor-v${version}-${{ matrix.target }}.sbom.json"
 
-      - name: Attest release artifacts
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
-        with:
-          subject-path: |
-            dist/pi-doctor-v*-${{ matrix.target }}.tar.gz
-            dist/pi-doctor-v*-${{ matrix.target }}.tar.gz.sha256
-            dist/pi-doctor-v*-${{ matrix.target }}.sbom.json
-
       - name: Upload target artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -108,8 +100,123 @@ jobs:
             dist/pi-doctor-v*-${{ matrix.target }}.tar.gz.sha256
             dist/pi-doctor-v*-${{ matrix.target }}.sbom.json
 
-  publish:
+  native-validation:
+    name: validate-${{ matrix.board }}-${{ matrix.os }}-${{ matrix.arch }}
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: pi3
+            os: bookworm-lite
+            arch: armv7
+            target: armv7-unknown-linux-gnueabihf
+            expected_board: "Raspberry Pi 3"
+            expected_arch_prefix: armv7
+            camera_expectation: no_camera_or_unavailable
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, armv7, raspberry-pi-3, bookworm, no-camera]
+          - board: pi4
+            os: bookworm-desktop
+            arch: aarch64
+            target: aarch64-unknown-linux-gnu
+            expected_board: "Raspberry Pi 4"
+            expected_arch_prefix: aarch64
+            camera_expectation: no_camera_or_unavailable
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-4, bookworm, no-camera]
+          - board: pi5
+            os: trixie-lite
+            arch: aarch64
+            target: aarch64-unknown-linux-gnu
+            expected_board: "Raspberry Pi 5"
+            expected_arch_prefix: aarch64
+            camera_expectation: present
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-5, trixie, camera]
+          - board: zero2w
+            os: bookworm-lite
+            arch: armv7
+            target: armv7-unknown-linux-gnueabihf
+            expected_board: "Raspberry Pi Zero 2"
+            expected_arch_prefix: armv7
+            camera_expectation: no_camera_or_unavailable
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, armv7, raspberry-pi-zero-2-w, bookworm, no-camera]
+          - board: compute-module
+            os: bookworm-lite
+            arch: aarch64
+            target: aarch64-unknown-linux-gnu
+            expected_board: "Compute Module"
+            expected_arch_prefix: aarch64
+            camera_expectation: no_camera_or_unavailable
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-compute-module, bookworm, no-camera]
+          - board: pi5-thermal
+            os: bookworm-lite
+            arch: aarch64
+            target: aarch64-unknown-linux-gnu
+            expected_board: "Raspberry Pi 5"
+            expected_arch_prefix: aarch64
+            camera_expectation: any
+            thermal_expectation: hot
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-5, bookworm, thermal-fixture]
+    runs-on: ${{ matrix.runs_on }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Download exact release archive artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ matrix.target }}
+          path: dist
+
+      - name: Install exact release archive
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          target="${{ matrix.target }}"
+          archive="dist/pi-doctor-v${version}-${target}.tar.gz"
+          chmod +x scripts/install.sh
+          scripts/install.sh \
+            --archive "$archive" \
+            --checksum "${archive}.sha256" \
+            --target "$target" \
+            --skip-attestation \
+            --bin-dir "$PWD/.tmp/bin"
+
+      - name: Run native release check
+        run: |
+          set +e
+          "$PWD/.tmp/bin/pi-doctor" --json check > check.json
+          status=$?
+          set -e
+          case "$status" in
+            0|1|2|3) ;;
+            *) echo "unexpected check status: $status" >&2; exit 1 ;;
+          esac
+
+      - name: Validate native report schema
+        run: |
+          python3 -m pip install jsonschema==4.23.0
+          python3 scripts/validate-report-schema.py \
+            --schema schema/pi-doctor-report.v1.schema.json \
+            --registry schema/finding-registry.v1.json \
+            check.json
+
+      - name: Validate native diagnostic expectations
+        run: |
+          python3 scripts/validate-native-report.py \
+            --report check.json \
+            --expected-board-contains "${{ matrix.expected_board }}" \
+            --expected-arch-prefix "${{ matrix.expected_arch_prefix }}" \
+            --expect-supported-os \
+            --camera-expectation "${{ matrix.camera_expectation }}" \
+            --thermal-expectation "${{ matrix.thermal_expectation }}"
+
+  attest:
+    needs: native-validation
     runs-on: ubuntu-latest
 
     steps:
@@ -132,8 +239,45 @@ jobs:
           (
             cd dist
             sha256sum *.tar.gz > SHA256SUMS
+            sha256sum SHA256SUMS > SHA256SUMS.sha256
           )
           cp scripts/install.sh dist/install.sh
+          (
+            cd dist
+            sha256sum install.sh > install.sh.sha256
+          )
+
+      - name: Attest release assets
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.sha256
+            dist/*.sbom.json
+            dist/SHA256SUMS
+            dist/install.sh
+
+      - name: Upload release asset bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-assets
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+            dist/*.sbom.json
+            dist/SHA256SUMS
+            dist/install.sh
+
+  publish:
+    needs: attest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download attested release assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets
+          path: dist
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1

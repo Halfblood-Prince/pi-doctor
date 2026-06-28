@@ -7,6 +7,13 @@ on:
         description: "Release version to test, for example 0.1.0. Leave empty to build from source."
         required: false
         default: ""
+  workflow_call:
+    inputs:
+      release_version:
+        description: "Release version to test, for example 0.1.0. Leave empty to build from source."
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -26,27 +33,56 @@ jobs:
             os: bookworm-lite
             arch: armv7
             target: armv7-unknown-linux-gnueabihf
-            runs_on: [self-hosted, linux, armv7, raspberry-pi-3, bookworm]
+            expected_board: "Raspberry Pi 3"
+            expected_arch_prefix: armv7
+            camera_expectation: no_camera_or_unavailable
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, armv7, raspberry-pi-3, bookworm, no-camera]
           - board: pi4
             os: bookworm-desktop
             arch: aarch64
             target: aarch64-unknown-linux-gnu
-            runs_on: [self-hosted, linux, arm64, raspberry-pi-4, bookworm]
+            expected_board: "Raspberry Pi 4"
+            expected_arch_prefix: aarch64
+            camera_expectation: no_camera_or_unavailable
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-4, bookworm, no-camera]
           - board: pi5
             os: trixie-lite
             arch: aarch64
             target: aarch64-unknown-linux-gnu
-            runs_on: [self-hosted, linux, arm64, raspberry-pi-5, trixie]
+            expected_board: "Raspberry Pi 5"
+            expected_arch_prefix: aarch64
+            camera_expectation: present
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-5, trixie, camera]
           - board: zero2w
             os: bookworm-lite
             arch: armv7
             target: armv7-unknown-linux-gnueabihf
-            runs_on: [self-hosted, linux, armv7, raspberry-pi-zero-2-w, bookworm]
+            expected_board: "Raspberry Pi Zero 2"
+            expected_arch_prefix: armv7
+            camera_expectation: no_camera_or_unavailable
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, armv7, raspberry-pi-zero-2-w, bookworm, no-camera]
           - board: compute-module
             os: bookworm-lite
             arch: aarch64
             target: aarch64-unknown-linux-gnu
-            runs_on: [self-hosted, linux, arm64, raspberry-pi-compute-module, bookworm]
+            expected_board: "Compute Module"
+            expected_arch_prefix: aarch64
+            camera_expectation: no_camera_or_unavailable
+            thermal_expectation: any
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-compute-module, bookworm, no-camera]
+          - board: pi5-thermal
+            os: bookworm-lite
+            arch: aarch64
+            target: aarch64-unknown-linux-gnu
+            expected_board: "Raspberry Pi 5"
+            expected_arch_prefix: aarch64
+            camera_expectation: any
+            thermal_expectation: hot
+            runs_on: [self-hosted, linux, arm64, raspberry-pi-5, bookworm, thermal-fixture]
     runs-on: ${{ matrix.runs_on }}
 
     steps:
@@ -111,3 +147,13 @@ jobs:
             --schema schema/pi-doctor-report.v1.schema.json \
             --registry schema/finding-registry.v1.json \
             check.json
+
+      - name: Validate native diagnostic expectations
+        run: |
+          python3 scripts/validate-native-report.py \
+            --report check.json \
+            --expected-board-contains "${{ matrix.expected_board }}" \
+            --expected-arch-prefix "${{ matrix.expected_arch_prefix }}" \
+            --expect-supported-os \
+            --camera-expectation "${{ matrix.camera_expectation }}" \
+            --thermal-expectation "${{ matrix.thermal_expectation }}"

@@ -86,6 +86,23 @@ the board, architecture, OS release, and image type explicit. A separate lab
 runner is also acceptable if it records the release artifact digest and command
 output in the release checklist.
 
+The release-gating runner labels are:
+
+- `self-hosted`, `linux`, `armv7`, `raspberry-pi-3`, `bookworm`, `no-camera`
+- `self-hosted`, `linux`, `arm64`, `raspberry-pi-4`, `bookworm`, `no-camera`
+- `self-hosted`, `linux`, `arm64`, `raspberry-pi-5`, `trixie`, `camera`
+- `self-hosted`, `linux`, `armv7`, `raspberry-pi-zero-2-w`, `bookworm`,
+  `no-camera`
+- `self-hosted`, `linux`, `arm64`, `raspberry-pi-compute-module`,
+  `bookworm`, `no-camera`
+- `self-hosted`, `linux`, `arm64`, `raspberry-pi-5`, `bookworm`,
+  `thermal-fixture`
+
+Each native report must assert the expected Raspberry Pi identity, board-model
+substring, architecture prefix, supported OS status, and any runner-specific
+camera or thermal finding expectations. Schema-valid JSON alone is not enough
+to pass hardware validation.
+
 ## Failure Modes To Keep Covered
 
 - no camera

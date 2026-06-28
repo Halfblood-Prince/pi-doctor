@@ -36,12 +36,21 @@ gh attestation verify "pi-doctor-v${version}-${target}.tar.gz" \
   --repo Halfblood-Prince/pi-doctor
 ```
 
+Releases also publish `SHA256SUMS`, `SHA256SUMS.sha256`, and provenance
+attestations for the checksum files.
+
 ### Verified Installer
 
 ```bash
 curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh
+curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh.sha256
+sha256sum -c install.sh.sha256
+gh attestation verify install.sh --repo Halfblood-Prince/pi-doctor
 bash install.sh --version 0.1.0 --bin-dir ~/.local/bin
 ```
+
+The manual archive route above has the smallest installer trust base: download
+the archive, checksum, and attestation yourself before extracting the binary.
 
 Use an explicit target such as `aarch64-unknown-linux-gnu` for Raspberry Pi OS
 64-bit, `armv7-unknown-linux-gnueabihf` for 32-bit ARM, or the matching `musl`
