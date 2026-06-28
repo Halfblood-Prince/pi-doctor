@@ -158,6 +158,10 @@ jobs:
               raise SystemExit("schema_version should be 1.0.0")
           PY
 
+          ./target/release/pi-doctor --json doctor camera > doctor-camera.json
+          ./target/release/pi-doctor --json doctor gpio > doctor-gpio.json
+          ./target/release/pi-doctor --json support-bundle --dry-run > support-bundle.json
+
       - name: Validate emitted report schema and finding registry
         run: |
           python3 -m pip install jsonschema==4.23.0
@@ -165,6 +169,13 @@ jobs:
             --schema schema/pi-doctor-report.v1.schema.json \
             --registry schema/finding-registry.v1.json \
             check.json
+          python3 scripts/validate-report-schema.py \
+            --schema schema/doctor-response.v1.schema.json \
+            --registry schema/finding-registry.v1.json \
+            doctor-camera.json doctor-gpio.json
+          python3 scripts/validate-report-schema.py \
+            --schema schema/support-bundle.v1.schema.json \
+            support-bundle.json
 
       - name: Release archive install smoke
         run: |

@@ -3,12 +3,18 @@
 See also [CLI Contract](cli-contract.md) for which output formats are considered
 stable.
 
-`pi-doctor check --json` currently emits schema version `1.0.0`.
+The stable JSON interfaces currently emit schema version `1.0.0`.
 
-The authoritative schema file is `schema/pi-doctor-report.v1.schema.json`.
+Authoritative schema files:
+
+- `schema/pi-doctor-report.v1.schema.json` for `pi-doctor check --json`
+- `schema/doctor-response.v1.schema.json` for `pi-doctor --json doctor camera`
+  and `pi-doctor --json doctor gpio`
+- `schema/support-bundle.v1.schema.json` for `pi-doctor --json support-bundle`
+
 The stable finding registry is `schema/finding-registry.v1.json`.
 
-Top-level fields:
+`check --json` top-level fields:
 
 - `metadata`: command metadata such as the command name.
 - `schema_version`: stable schema identifier for automation clients.
@@ -37,6 +43,28 @@ Each `probe_health` entry contains:
 
 Each finding contains an `impact` field. `impact` drives `overall_status` and is
 independent of the finding ID or title.
+
+Focused doctor JSON contains:
+
+- `metadata`
+- `schema_version`
+- `target`: `camera` or `gpio`
+- `summary`: target-specific diagnostic summary
+- `findings`: registry-backed finding objects
+
+Support-bundle JSON contains:
+
+- `metadata`
+- `schema_version`
+- `dry_run`
+- `output_root`
+- `bundle_dir`
+- `privacy_mode`
+- `redaction_enabled`
+- `files`
+- `collection_plan`
+- `manifest`
+- `report_schema_version`
 
 Domain order:
 

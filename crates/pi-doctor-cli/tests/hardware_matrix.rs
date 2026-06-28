@@ -14,7 +14,11 @@ fn pi4_lite_no_camera_fixture_reports_camera_problem() {
                 "rpicam-hello-list-cameras.txt",
             )),
         )
-        .with_command_output("libcamera-hello", &["--list-cameras"], CommandOutput::Missing);
+        .with_command_output(
+            "libcamera-hello",
+            &["--list-cameras"],
+            CommandOutput::Missing,
+        );
 
     let report = pi_doctor::build_check_report(&ctx);
 

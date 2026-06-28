@@ -206,14 +206,14 @@ fn duplicate_dtoverlay_findings(entries: &[ConfigEntry]) -> Vec<Finding> {
                 id: "config_txt.duplicate_dtoverlay",
                 severity: Severity::Warning,
                 impact: Impact::Warning,
-                title: format!("Duplicate `{overlay}` dtoverlay entries detected"),
+                title: format!("Potential duplicate `{overlay}` dtoverlay entries detected"),
                 summary: format!(
-                    "`dtoverlay={overlay}` appears more than once in the {} config section.",
+                    "`dtoverlay={overlay}` appears more than once in the {} config section. pi-doctor has not resolved include files or board-conditional precedence for the final effective setting.",
                     section_label(section.as_deref())
                 ),
                 evidence: vec![format!("lines: {line_list}")],
                 suggested_actions: vec![
-                    "Why this matters: repeating the same overlay in one section is rarely intentional and can make the effective boot configuration harder to reason about.".to_owned(),
+                    "Why this matters: repeated overlay lines can be intentional, but they make the observed boot configuration harder to reason about.".to_owned(),
                     format!("What to run next: review lines {line_list} and keep a single `{overlay}` overlay entry unless you have a board-specific reason."),
                 ],
             })
@@ -251,9 +251,9 @@ fn conflicting_dtparam_findings(entries: &[ConfigEntry]) -> Vec<Finding> {
                 id: "config_txt.conflicting_dtparam",
                 severity: Severity::Warning,
                 impact: Impact::Warning,
-                title: format!("Conflicting `{param}` dtparam entries detected"),
+                title: format!("Potential conflicting `{param}` dtparam entries detected"),
                 summary: format!(
-                    "`dtparam={param}=...` has multiple values in the {} config section.",
+                    "`dtparam={param}=...` has multiple observed values in the {} config section. pi-doctor has not resolved include files or board-conditional precedence for the final effective setting.",
                     section_label(section.as_deref())
                 ),
                 evidence: vec![
@@ -261,7 +261,7 @@ fn conflicting_dtparam_findings(entries: &[ConfigEntry]) -> Vec<Finding> {
                     format!("values: {}", values.into_iter().collect::<Vec<_>>().join(", ")),
                 ],
                 suggested_actions: vec![
-                    "Why this matters: only the effective value matters at boot, but conflicting repeated parameters hide intent.".to_owned(),
+                    "Why this matters: only the effective value matters at boot, but conflicting observed parameters hide intent.".to_owned(),
                     format!("What to run next: review lines {line_list} and keep the intended `{param}` value in that section."),
                 ],
             })

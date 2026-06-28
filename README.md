@@ -10,8 +10,8 @@ identity mismatches, thermal throttling, `config.txt` drift, GPIO conflicts,
 camera detection failures, and Python environment pitfalls.
 
 It is designed for both interactive troubleshooting and automation. Human
-output explains what changed and what to run next; JSON output gives scripts a
-stable schema.
+output explains what changed and what to run next; JSON output gives scripts
+stable schemas.
 
 ## Install
 
@@ -127,8 +127,9 @@ privacy-preserving JSON-lines logs:
 PI_DOCTOR_LOG=debug PI_DOCTOR_LOG_FORMAT=json pi-doctor --json check > report.json 2> pi-doctor.log.jsonl
 ```
 
-The JSON contract is documented in [`docs/cli-contract.md`](docs/cli-contract.md)
-and [`docs/json-schema.md`](docs/json-schema.md).
+The JSON contract is documented in [`docs/cli-contract.md`](docs/cli-contract.md),
+[`docs/json-schema.md`](docs/json-schema.md), and the schema files in
+[`schema/`](schema/).
 
 ## Project Operations
 

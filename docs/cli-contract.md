@@ -111,7 +111,8 @@ Files and directories read by probes:
 - `/usr/lib/os-release`
 - `/boot/firmware/config.txt`
 - `/boot/config.txt`
-- `/sys/class/thermal/thermal_zone0/temp`
+- `/sys/class/thermal/thermal_zone*/type`
+- `/sys/class/thermal/thermal_zone*/temp`
 - `/dev` directory names matching `video*`
 - Python `EXTERNALLY-MANAGED` marker path reported by `python3 -c 'import sysconfig; ...'`
 
@@ -170,6 +171,11 @@ hashes for payload files.
 - Repeating a `dtparam` with conflicting values in the same section is reported.
 - The same overlay or parameter may appear in different sections without being
   treated as a duplicate.
+
+These findings describe observed entries in the parsed source file. They do not
+yet resolve `include` files, inactive conditional sections, or the final
+effective boot setting after `[all]`, board-specific sections, and later
+overrides are layered.
 
 ## Compatibility Guidance
 

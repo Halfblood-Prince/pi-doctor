@@ -7,6 +7,7 @@ version="latest"
 target=""
 archive_path=""
 checksum_path=""
+archive_supplied="false"
 skip_attestation="false"
 tmp_dir=""
 rollback="false"
@@ -22,11 +23,12 @@ trap cleanup EXIT
 usage() {
   cat <<'EOF'
 Usage: install.sh [--version <semver>] [--target <triple>] [--bin-dir <path>]
-                  [--archive <path> --checksum <path>] [--skip-attestation]
+                  [--archive <path> --checksum <path> [--skip-attestation]]
                   [--rollback | --uninstall]
 
 Installs pi-doctor from a verified GitHub release archive or a verified local
-archive. Local archives require a matching --checksum file.
+archive. Local archives require a matching --checksum file. Attestation can be
+skipped only for explicitly supplied local archives.
 EOF
 }
 
@@ -46,6 +48,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --archive)
       archive_path="$2"
+      archive_supplied="true"
       shift 2
       ;;
     --checksum)
@@ -184,10 +187,14 @@ verify_checksum() {
 
 verify_attestation() {
   if [[ "$skip_attestation" == "true" ]]; then
+    if [[ "$archive_supplied" != "true" ]]; then
+      echo "--skip-attestation requires --archive and is only for trusted local archives" >&2
+      exit 2
+    fi
     return
   fi
   if ! command -v gh >/dev/null 2>&1; then
-    echo "GitHub CLI is required for attestation verification; rerun with --skip-attestation only for trusted local testing" >&2
+    echo "GitHub CLI is required for attestation verification; --skip-attestation is allowed only with a trusted local --archive" >&2
     exit 1
   fi
 
@@ -263,6 +270,11 @@ fi
 if [[ "$uninstall" == "true" ]]; then
   uninstall_binary
   exit 0
+fi
+
+if [[ "$skip_attestation" == "true" && "$archive_supplied" != "true" ]]; then
+  echo "--skip-attestation requires --archive and is only for trusted local archives" >&2
+  exit 2
 fi
 
 if [[ -z "$archive_path" ]]; then

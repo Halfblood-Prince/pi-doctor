@@ -45,7 +45,7 @@ pi-doctor support-bundle --output ./bundles
 - [Getting Started](getting-started.md): installation, core commands, and local docs usage
 - [CLI Contract](cli-contract.md): stable automation-facing behavior
 - [Exit Codes](exit-codes.md): process exit semantics
-- [JSON Schema](json-schema.md): `check --json` structure and guarantees
+- [JSON Schema](json-schema.md): stable JSON structures and guarantees
 - [Hardware Matrix](hardware-matrix.md): fixture strategy for parser coverage
 - [Release Process](release-process.md): semver, release candidates, and staged validation
 - [Known Limitations](known-limitations.md): unsupported boards, blind spots, and expected false positives
@@ -58,6 +58,6 @@ If you are integrating with `pi-doctor` from scripts or CI:
 - prefer `pi-doctor check --json`
 - gate behavior on `schema_version`
 - inspect `probe_health` before treating missing data as healthy
-- validate reports against `schema/pi-doctor-report.v1.schema.json`
+- validate reports against the schemas in `schema/`
 - use exit codes only for coarse status
 - ignore unknown JSON fields

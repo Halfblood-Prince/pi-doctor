@@ -97,7 +97,10 @@ fn write_bundle_contents(
     let mut contents = BTreeMap::new();
     contents.insert(
         "report.json".to_owned(),
-        privacy_filter(&pi_doctor_report::json::render(&input.report)?, input.privacy_mode),
+        privacy_filter(
+            &pi_doctor_report::json::render(&input.report)?,
+            input.privacy_mode,
+        ),
     );
     contents.insert(
         "report.txt".to_owned(),
@@ -112,10 +115,7 @@ fn write_bundle_contents(
             input.privacy_mode,
         ),
     );
-    contents.insert(
-        "privacy.txt".to_owned(),
-        privacy_notice(input.privacy_mode),
-    );
+    contents.insert("privacy.txt".to_owned(), privacy_notice(input.privacy_mode));
 
     for (path, content) in &input.extra_files {
         contents.insert(path.clone(), privacy_filter(content, input.privacy_mode));
@@ -585,11 +585,7 @@ fn is_base64_url_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '=')
 }
 
-fn replace_matching_tokens(
-    input: &str,
-    predicate: fn(&str) -> bool,
-    replacement: &str,
-) -> String {
+fn replace_matching_tokens(input: &str, predicate: fn(&str) -> bool, replacement: &str) -> String {
     let mut output = String::new();
     let mut token = String::new();
 
@@ -607,11 +603,7 @@ fn replace_matching_tokens(
     output
 }
 
-fn replace_token_if_needed(
-    token: &str,
-    predicate: fn(&str) -> bool,
-    replacement: &str,
-) -> String {
+fn replace_token_if_needed(token: &str, predicate: fn(&str) -> bool, replacement: &str) -> String {
     if token.is_empty() {
         return String::new();
     }
@@ -858,11 +850,13 @@ mod tests {
             .expect("second bundle should be written");
 
         assert_ne!(first.bundle_dir, second.bundle_dir);
-        assert!(second
-            .bundle_dir
-            .file_name()
-            .and_then(|name| name.to_str())
-            .is_some_and(|name| name.ends_with("-1")));
+        assert!(
+            second
+                .bundle_dir
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.ends_with("-1"))
+        );
     }
 
     #[test]

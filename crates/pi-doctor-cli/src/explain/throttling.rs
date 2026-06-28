@@ -138,7 +138,7 @@ fn next_steps(details: &ThrottlingDetails, band: Option<TemperatureBand>) -> Vec
         band,
         Some(TemperatureBand::NearThrottle | TemperatureBand::ThrottlingLikely)
     ) {
-        steps.push("  Watch `/sys/class/thermal/thermal_zone0/temp` during sustained load to confirm the heat trend.".to_owned());
+        steps.push("  Watch the CPU/SoC thermal zone under `/sys/class/thermal/thermal_zone*/temp` during sustained load to confirm the heat trend.".to_owned());
     }
     if steps.is_empty() {
         steps.push("  No immediate remediation is suggested; rerun this command if you see performance drops under load.".to_owned());

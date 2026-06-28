@@ -43,7 +43,8 @@ For each real hardware capture, collect:
 - `/proc/sys/kernel/osrelease`
 - `/etc/os-release`
 - `/boot/firmware/config.txt` or `/boot/config.txt`
-- `/sys/class/thermal/thermal_zone0/temp`
+- `/sys/class/thermal/thermal_zone*/type`
+- `/sys/class/thermal/thermal_zone*/temp`
 - `vcgencmd get_throttled`
 - `pinctrl`
 - `rpicam-hello --list-cameras`

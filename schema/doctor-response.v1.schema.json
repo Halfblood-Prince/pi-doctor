@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halfblood-prince.github.io/pi-doctor/schema/doctor-response.v1.schema.json",
+  "title": "pi-doctor focused doctor response v1",
+  "type": "object",
+  "required": ["metadata", "schema_version", "target", "summary", "findings"],
+  "properties": {
+    "metadata": { "$ref": "#/$defs/metadata" },
+    "schema_version": { "const": "1.0.0" },
+    "target": { "enum": ["camera", "gpio"] },
+    "summary": { "type": "object" },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "target": { "const": "camera" } } },
+      "then": { "properties": { "summary": { "$ref": "#/$defs/camera_summary" } } }
+    },
+    {
+      "if": { "properties": { "target": { "const": "gpio" } } },
+      "then": { "properties": { "summary": { "$ref": "#/$defs/gpio_summary" } } }
+    }
+  ],
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "command",
+        "pi_doctor_version",
+        "build_revision",
+        "target_architecture",
+        "supported_os",
+        "probe_availability"
+      ],
+      "properties": {
+        "command": { "type": "string" },
+        "pi_doctor_version": { "type": "string" },
+        "build_revision": { "type": ["string", "null"] },
+        "target_architecture": { "type": "string" },
+        "supported_os": { "$ref": "#/$defs/supported_os" },
+        "probe_availability": { "$ref": "#/$defs/probe_availability" }
+      }
+    },
+    "supported_os": {
+      "type": "object",
+      "required": ["supported", "family", "version", "codename", "reason"],
+      "properties": {
+        "supported": { "type": "boolean" },
+        "family": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "codename": { "type": ["string", "null"] },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "probe_availability": {
+      "type": "object",
+      "required": [
+        "total",
+        "success",
+        "unavailable",
+        "permission_denied",
+        "command_failed",
+        "parse_failed",
+        "timed_out"
+      ],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "success": { "type": "integer", "minimum": 0 },
+        "unavailable": { "type": "integer", "minimum": 0 },
+        "permission_denied": { "type": "integer", "minimum": 0 },
+        "command_failed": { "type": "integer", "minimum": 0 },
+        "parse_failed": { "type": "integer", "minimum": 0 },
+        "timed_out": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "camera_summary": {
+      "type": "object",
+      "required": [
+        "tool_used",
+        "rpicam_hello_present",
+        "libcamera_hello_present",
+        "video_devices",
+        "cameras"
+      ],
+      "properties": {
+        "tool_used": { "type": ["string", "null"] },
+        "rpicam_hello_present": { "type": "boolean" },
+        "libcamera_hello_present": { "type": "boolean" },
+        "video_devices": { "type": "array", "items": { "type": "string" } },
+        "cameras": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/camera_device" }
+        }
+      }
+    },
+    "camera_device": {
+      "type": "object",
+      "required": ["index", "name", "mode_hint"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "name": { "type": "string" },
+        "mode_hint": { "type": ["string", "null"] }
+      }
+    },
+    "gpio_summary": {
+      "type": "object",
+      "required": [
+        "pinctrl_present",
+        "raspi_gpio_present",
+        "gpioinfo_present",
+        "gpiodetect_present",
+        "gpiochips",
+        "overlay_hints",
+        "alternate_functions"
+      ],
+      "properties": {
+        "pinctrl_present": { "type": "boolean" },
+        "raspi_gpio_present": { "type": "boolean" },
+        "gpioinfo_present": { "type": "boolean" },
+        "gpiodetect_present": { "type": "boolean" },
+        "gpiochips": { "type": "array", "items": { "type": "string" } },
+        "overlay_hints": { "type": "array", "items": { "type": "string" } },
+        "alternate_functions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pin_function" }
+        }
+      }
+    },
+    "pin_function": {
+      "type": "object",
+      "required": ["pin", "function"],
+      "properties": {
+        "pin": { "type": "integer", "minimum": 0 },
+        "function": { "type": "string" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "id",
+        "severity",
+        "impact",
+        "title",
+        "summary",
+        "evidence",
+        "suggested_actions"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "severity": { "enum": ["info", "warning", "error"] },
+        "impact": { "enum": ["info", "warning", "degraded", "critical"] },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "suggested_actions": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

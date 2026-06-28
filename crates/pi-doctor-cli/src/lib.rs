@@ -10,9 +10,9 @@ use cli::args::{Cli, Commands, DoctorTarget, ExplainTopic};
 use log::warn;
 use pi_doctor_bundle::{BundleInput, BundlePrivacyMode, write_bundle};
 use pi_doctor_core::{
-    CameraSummary, Finding, FindingDomain, FindingGroup, Impact, OverallStatus, ProbeContext,
-    ProbeAvailabilitySummary, ProbeHealth, ProbeOutcome, Report, ReportMetadata, Severity,
-    SupportedOs, SystemSummary,
+    CameraSummary, Finding, FindingDomain, FindingGroup, Impact, OverallStatus,
+    ProbeAvailabilitySummary, ProbeContext, ProbeHealth, ProbeOutcome, Report, ReportMetadata,
+    Severity, SupportedOs, SystemSummary,
 };
 use pi_doctor_probes::{
     ProbeError,
@@ -150,18 +150,20 @@ pub fn build_check_report(ctx: &ProbeContext) -> Report {
     findings.extend(throttling_findings(throttling.value.clone()));
     findings.extend(camera.value.findings.clone());
     findings.extend(python.value.findings.clone());
-    findings.extend([
-        board.unavailable_finding,
-        os.unavailable_finding,
-        kernel.unavailable_finding,
-        config.unavailable_finding,
-        thermal.unavailable_finding,
-        throttling.unavailable_finding,
-        camera.unavailable_finding,
-        python.unavailable_finding,
-    ]
-    .into_iter()
-    .flatten());
+    findings.extend(
+        [
+            board.unavailable_finding,
+            os.unavailable_finding,
+            kernel.unavailable_finding,
+            config.unavailable_finding,
+            thermal.unavailable_finding,
+            throttling.unavailable_finding,
+            camera.unavailable_finding,
+            python.unavailable_finding,
+        ]
+        .into_iter()
+        .flatten(),
+    );
     sort_findings(&mut findings);
     let groups = group_findings(&findings);
 
@@ -286,7 +288,9 @@ fn supported_os_detection(system: &SystemSummary) -> SupportedOs {
             family,
             version,
             codename,
-            reason: Some(format!("architecture `{architecture}` is outside the supported matrix")),
+            reason: Some(format!(
+                "architecture `{architecture}` is outside the supported matrix"
+            )),
         };
     }
 
@@ -378,7 +382,8 @@ fn probe_unavailable_finding(name: &'static str, error: &ProbeError) -> Finding 
         ),
         evidence: vec![error.to_string()],
         suggested_actions: vec![
-            "Why this matters: unavailable probe data is not the same as a healthy subsystem.".to_owned(),
+            "Why this matters: unavailable probe data is not the same as a healthy subsystem."
+                .to_owned(),
             format!(
                 "What to run next: resolve the `{name}` probe error and rerun `pi-doctor check`."
             ),
@@ -481,7 +486,11 @@ fn execute_support_bundle(
     );
     extra_files.insert(
         "raw/thermal/temp.txt".to_owned(),
-        ctx.read_text("/sys/class/thermal/thermal_zone0/temp")
+        ThermalProbe
+            .collect(&ctx)
+            .ok()
+            .and_then(|details| details.source_path)
+            .and_then(|path| ctx.read_text(path))
             .unwrap_or_else(|| "unavailable\n".to_owned()),
     );
     extra_files.insert(
@@ -611,7 +620,7 @@ fn support_bundle_collection_plan() -> Vec<SupportBundlePlanItem> {
         },
         SupportBundlePlanItem {
             path: "raw/thermal/temp.txt",
-            source: "/sys/class/thermal/thermal_zone0/temp",
+            source: "/sys/class/thermal/thermal_zone*/temp selected by thermal zone type",
         },
         SupportBundlePlanItem {
             path: "raw/config/source-path.txt",
@@ -681,7 +690,10 @@ fn render_support_bundle_result(
     }
     lines.push("Manifest hashes:".to_owned());
     for entry in &result.manifest {
-        lines.push(format!("  {}  {}  {}", entry.sha256, entry.bytes, entry.path));
+        lines.push(format!(
+            "  {}  {}  {}",
+            entry.sha256, entry.bytes, entry.path
+        ));
     }
     format!("{}\n", lines.join("\n"))
 }

@@ -31,6 +31,8 @@ conditions can therefore be inferred only indirectly:
 - thermal problems that appear only under sustained workload
 - boot configuration inside conditional sections that are not active on the
   current board
+- included `config.txt` files and final effective boot settings after section
+  precedence is applied
 
 ## Expected False Positives
 

@@ -17,4 +17,4 @@ Assessment
 Next steps
   Check the power supply rating, USB-C or micro-USB cable quality, and attached peripheral load.
   Improve cooling and airflow, then compare `vcgencmd get_throttled` before and after temperatures drop.
-  Watch `/sys/class/thermal/thermal_zone0/temp` during sustained load to confirm the heat trend.
+  Watch the CPU/SoC thermal zone under `/sys/class/thermal/thermal_zone*/temp` during sustained load to confirm the heat trend.

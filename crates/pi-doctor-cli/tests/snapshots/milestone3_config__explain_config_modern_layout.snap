@@ -10,8 +10,8 @@ Boot configuration analysis
   legacy /boot/config.txt also exists
 
 Findings
-  Conflicting `i2c_arm` dtparam entries detected.
-  `dtparam=i2c_arm=...` has multiple values in the [all] config section.
+  Potential conflicting `i2c_arm` dtparam entries detected.
+  `dtparam=i2c_arm=...` has multiple observed values in the [all] config section. pi-doctor has not resolved include files or board-conditional precedence for the final effective setting.
   Evidence: lines: 5, 6
   Evidence: values: off, on
   `start_x` looks like a legacy boot option.

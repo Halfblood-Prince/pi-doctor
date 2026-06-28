@@ -72,7 +72,16 @@ fn binary_output(args: &[&str], allowed_exit_codes: &[i32]) -> String {
 }
 
 fn normalize(output: String) -> String {
-    output.replace("pi-doctor.exe", "pi-doctor")
+    let normalized = output.replace("pi-doctor.exe", "pi-doctor");
+    let mut lines = normalized
+        .lines()
+        .map(str::trim_end)
+        .collect::<Vec<_>>()
+        .join("\n");
+    if normalized.ends_with('\n') {
+        lines.push('\n');
+    }
+    lines
 }
 
 fn fixture_ctx(name: &str) -> ProbeContext {

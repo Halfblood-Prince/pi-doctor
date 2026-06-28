@@ -11,8 +11,41 @@ permissions:
   attestations: write
 
 jobs:
+  preflight:
+    name: release preflight
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Check release tag matches Cargo version
+        run: |
+          python3 - <<'PY'
+          import os
+          import tomllib
+
+          tag = os.environ["GITHUB_REF_NAME"]
+          if not tag.startswith("v"):
+              raise SystemExit(f"release tag must start with v, got {tag!r}")
+
+          tag_version = tag[1:]
+          with open("Cargo.toml", "rb") as handle:
+              manifest = tomllib.load(handle)
+          cargo_version = manifest["workspace"]["package"]["version"]
+
+          if tag_version != cargo_version:
+              raise SystemExit(
+                  "release tag version does not match Cargo workspace package version: "
+                  f"tag={tag_version}, cargo={cargo_version}"
+              )
+
+          print(f"release version preflight passed: {tag_version}")
+          PY
+
   build:
     name: build-${{ matrix.target }}
+    needs: preflight
     runs-on: ubuntu-latest
     env:
       PI_DOCTOR_BUILD_REVISION: ${{ github.sha }}
@@ -41,7 +74,7 @@ jobs:
         run: cargo install cross --git https://github.com/cross-rs/cross --rev 88f49ff79e777bef6d3564531636ee4d3cc2f8d2 --locked
 
       - name: Build release binary
-        run: cross build -p pi-doctor --release --target ${{ matrix.target }}
+        run: cross build -p pi-doctor --release --locked --target ${{ matrix.target }}
 
       - name: Package archive
         run: |

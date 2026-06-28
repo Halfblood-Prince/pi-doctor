@@ -41,7 +41,11 @@ fn json_contract_exposes_expected_top_level_fields() {
         .as_array()
         .expect("probe health should be an array")
         .iter()
-        .map(|health| health["name"].as_str().expect("probe name should be string"))
+        .map(|health| {
+            health["name"]
+                .as_str()
+                .expect("probe name should be string")
+        })
         .collect::<Vec<_>>();
     let mut sorted_probe_names = probe_names.clone();
     sorted_probe_names.sort_unstable();
@@ -127,9 +131,13 @@ fn support_bundle_dry_run_lists_files_without_writing() {
     assert_eq!(value["dry_run"], true);
     assert_eq!(value["privacy_mode"], "sanitized");
     assert_eq!(value["redaction_enabled"], true);
-    assert!(value["files"].as_array().expect("files should be an array").iter().any(
-        |path| path == "manifest.txt"
-    ));
+    assert!(
+        value["files"]
+            .as_array()
+            .expect("files should be an array")
+            .iter()
+            .any(|path| path == "manifest.txt")
+    );
     assert_eq!(response.exit_code, 0);
 }
 

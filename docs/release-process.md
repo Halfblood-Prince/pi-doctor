@@ -38,6 +38,7 @@ Release candidates are not promoted to Debian, Homebrew, or APT channels.
 Before a final release:
 
 - validate `pi-doctor --json check` against the schema
+- confirm the Git tag version matches `workspace.package.version` in `Cargo.toml`
 - run subsystem fixtures and parser corpus tests
 - test exact release archives, not only local build outputs
 - verify archive checksums, SBOMs, and provenance attestations

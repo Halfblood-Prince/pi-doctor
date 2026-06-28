@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halfblood-prince.github.io/pi-doctor/schema/support-bundle.v1.schema.json",
+  "title": "pi-doctor support bundle response v1",
+  "type": "object",
+  "required": [
+    "metadata",
+    "schema_version",
+    "dry_run",
+    "output_root",
+    "bundle_dir",
+    "privacy_mode",
+    "redaction_enabled",
+    "files",
+    "collection_plan",
+    "manifest",
+    "report_schema_version"
+  ],
+  "properties": {
+    "metadata": { "$ref": "#/$defs/metadata" },
+    "schema_version": { "const": "1.0.0" },
+    "dry_run": { "type": "boolean" },
+    "output_root": { "type": "string" },
+    "bundle_dir": { "type": "string" },
+    "privacy_mode": { "enum": ["sanitized", "sensitive"] },
+    "redaction_enabled": { "type": "boolean" },
+    "files": { "type": "array", "items": { "type": "string" } },
+    "collection_plan": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/collection_plan_item" }
+    },
+    "manifest": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/manifest_entry" }
+    },
+    "report_schema_version": { "const": "1.0.0" }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "command",
+        "pi_doctor_version",
+        "build_revision",
+        "target_architecture",
+        "supported_os",
+        "probe_availability"
+      ],
+      "properties": {
+        "command": { "type": "string" },
+        "pi_doctor_version": { "type": "string" },
+        "build_revision": { "type": ["string", "null"] },
+        "target_architecture": { "type": "string" },
+        "supported_os": { "$ref": "#/$defs/supported_os" },
+        "probe_availability": { "$ref": "#/$defs/probe_availability" }
+      }
+    },
+    "supported_os": {
+      "type": "object",
+      "required": ["supported", "family", "version", "codename", "reason"],
+      "properties": {
+        "supported": { "type": "boolean" },
+        "family": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "codename": { "type": ["string", "null"] },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "probe_availability": {
+      "type": "object",
+      "required": [
+        "total",
+        "success",
+        "unavailable",
+        "permission_denied",
+        "command_failed",
+        "parse_failed",
+        "timed_out"
+      ],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "success": { "type": "integer", "minimum": 0 },
+        "unavailable": { "type": "integer", "minimum": 0 },
+        "permission_denied": { "type": "integer", "minimum": 0 },
+        "command_failed": { "type": "integer", "minimum": 0 },
+        "parse_failed": { "type": "integer", "minimum": 0 },
+        "timed_out": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "collection_plan_item": {
+      "type": "object",
+      "required": ["path", "source"],
+      "properties": {
+        "path": { "type": "string" },
+        "source": { "type": "string" }
+      }
+    },
+    "manifest_entry": {
+      "type": "object",
+      "required": ["path", "sha256", "bytes"],
+      "properties": {
+        "path": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "bytes": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

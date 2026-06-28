@@ -67,3 +67,7 @@ CI tests the release installer with real archives for:
 
 The installer keeps the previous binary at `.pi-doctor.previous` in the target
 binary directory and restores it with `--rollback`.
+
+`--skip-attestation` is reserved for explicitly supplied local archives used in
+offline or CI smoke tests. Remote GitHub release downloads still require
+attestation verification.
