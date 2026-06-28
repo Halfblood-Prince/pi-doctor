@@ -14,9 +14,11 @@ impl OsProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<OsDetails, ProbeError> {
         let os_release = match read_optional_text(ctx, "/etc/os-release")? {
             Some(contents) => contents,
-            None => read_optional_text(ctx, "/usr/lib/os-release")?.ok_or(ProbeError::ReadText {
-                path: "/etc/os-release or /usr/lib/os-release",
-            })?,
+            None => {
+                read_optional_text(ctx, "/usr/lib/os-release")?.ok_or(ProbeError::ReadText {
+                    path: "/etc/os-release or /usr/lib/os-release",
+                })?
+            }
         };
 
         let version_field = os_release_value(&os_release, "VERSION");

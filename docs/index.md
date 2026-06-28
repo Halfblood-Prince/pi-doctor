@@ -47,6 +47,9 @@ pi-doctor support-bundle --output ./bundles
 - [Exit Codes](exit-codes.md): process exit semantics
 - [JSON Schema](json-schema.md): `check --json` structure and guarantees
 - [Hardware Matrix](hardware-matrix.md): fixture strategy for parser coverage
+- [Release Process](release-process.md): semver, release candidates, and staged validation
+- [Known Limitations](known-limitations.md): unsupported boards, blind spots, and expected false positives
+- [Maintainer Policy](maintainer-policy.md): review, privacy, security, and release responsibilities
 
 ## Automation Guidance
 

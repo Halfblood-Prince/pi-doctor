@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest a capability, supported platform, or diagnostic improvement.
+title: "feature: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or automation problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the desired behavior and any CLI or JSON impact.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation target
+      description: Hardware, OS, package channel, or fixture coverage needed.
+    validations:
+      required: false
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Contract impact
+      options:
+        - label: This may affect CLI behavior.
+        - label: This may affect JSON schema or finding IDs.
+        - label: This may affect support bundle privacy.

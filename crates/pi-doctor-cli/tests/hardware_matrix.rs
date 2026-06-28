@@ -25,14 +25,18 @@ fn pi4_lite_no_camera_fixture_reports_camera_problem() {
         Some("Raspberry Pi 4 Model B Rev 1.5")
     );
     assert_eq!(system.distro_codename.as_deref(), Some("bookworm"));
-    assert!(report
-        .findings
-        .iter()
-        .any(|finding| finding.id == "camera.no_cameras_detected"));
-    assert!(report
-        .probe_health
-        .iter()
-        .any(|health| health.name == "camera" && health.outcome == ProbeOutcome::Success));
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|finding| finding.id == "camera.no_cameras_detected")
+    );
+    assert!(
+        report
+            .probe_health
+            .iter()
+            .any(|health| health.name == "camera" && health.outcome == ProbeOutcome::Success)
+    );
 }
 
 #[test]
@@ -65,7 +69,11 @@ fn hardware_context(root: PathBuf, fixture: &str) -> ProbeContext {
             CommandOutput::Success(capture(fixture, "vcgencmd-get_throttled.txt")),
         )
         .with_command_output("rpicam-hello", &["--list-cameras"], CommandOutput::Missing)
-        .with_command_output("libcamera-hello", &["--list-cameras"], CommandOutput::Missing)
+        .with_command_output(
+            "libcamera-hello",
+            &["--list-cameras"],
+            CommandOutput::Missing,
+        )
         .with_command_output("python3", &["--version"], CommandOutput::Missing)
         .with_command_output(
             "python3",

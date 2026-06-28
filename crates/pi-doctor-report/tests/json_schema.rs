@@ -32,7 +32,10 @@ fn emitted_json_matches_documented_schema_structure() {
     );
 
     assert_eq!(value["metadata"]["command"], "check");
-    assert_eq!(value["metadata"]["pi_doctor_version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(
+        value["metadata"]["pi_doctor_version"],
+        env!("CARGO_PKG_VERSION")
+    );
     assert_eq!(value["metadata"]["supported_os"]["supported"], true);
     assert_eq!(value["metadata"]["probe_availability"]["total"], 1);
     assert_eq!(value["schema_version"], "1.0.0");
@@ -121,7 +124,7 @@ fn sample_report() -> Report {
                 total: 1,
                 success: 1,
                 ..pi_doctor_core::ProbeAvailabilitySummary::default()
-        }),
+            }),
         schema_version: "1.0.0",
         overall_status: OverallStatus::Critical,
         probe_health: vec![ProbeHealth {

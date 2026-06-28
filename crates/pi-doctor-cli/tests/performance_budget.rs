@@ -14,7 +14,10 @@ fn check_fixture_stays_within_runtime_budget() {
         elapsed.as_secs_f32() < 5.0,
         "fixture-backed check took {elapsed:?}"
     );
-    assert_eq!(report.metadata.probe_availability.total, report.probe_health.len());
+    assert_eq!(
+        report.metadata.probe_availability.total,
+        report.probe_health.len()
+    );
 }
 
 fn fixture_context(name: &str) -> ProbeContext {
@@ -30,7 +33,11 @@ fn fixture_context(name: &str) -> ProbeContext {
             &["--list-cameras"],
             CommandOutput::Success(capture(name, "rpicam-hello-list-cameras.txt")),
         )
-        .with_command_output("libcamera-hello", &["--list-cameras"], CommandOutput::Missing)
+        .with_command_output(
+            "libcamera-hello",
+            &["--list-cameras"],
+            CommandOutput::Missing,
+        )
         .with_command_output(
             "python3",
             &["--version"],

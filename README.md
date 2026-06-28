@@ -120,8 +120,24 @@ pi-doctor --json check
 JSON includes `probe_health` so scripts can tell a healthy subsystem from an
 incomplete inspection.
 
+Operational logs are written to stderr. For CI or field debugging, use
+privacy-preserving JSON-lines logs:
+
+```bash
+PI_DOCTOR_LOG=debug PI_DOCTOR_LOG_FORMAT=json pi-doctor --json check > report.json 2> pi-doctor.log.jsonl
+```
+
 The JSON contract is documented in [`docs/cli-contract.md`](docs/cli-contract.md)
 and [`docs/json-schema.md`](docs/json-schema.md).
+
+## Project Operations
+
+- Security policy: [`SECURITY.md`](SECURITY.md)
+- Contributing guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Changelog: [`CHANGELOG.md`](CHANGELOG.md)
+- Maintainer policy: [`MAINTAINERS.md`](MAINTAINERS.md)
+- Release process: [`docs/release-process.md`](docs/release-process.md)
+- Known limitations: [`docs/known-limitations.md`](docs/known-limitations.md)
 
 ## License
 

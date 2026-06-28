@@ -19,10 +19,12 @@ fn pi4_bookworm_fixture_is_detected_as_raspberry_pi() {
     assert_eq!(system.distro_codename.as_deref(), Some("bookworm"));
     assert_eq!(system.kernel_release.as_deref(), Some("6.6.31-v8+"));
     assert!(system.is_raspberry_pi);
-    assert!(report
-        .probe_health
-        .iter()
-        .any(|health| health.name == "board" && health.outcome == ProbeOutcome::Success));
+    assert!(
+        report
+            .probe_health
+            .iter()
+            .any(|health| health.name == "board" && health.outcome == ProbeOutcome::Success)
+    );
 }
 
 #[test]
@@ -42,10 +44,12 @@ fn pi5_trixie_fixture_is_detected_as_raspberry_pi() {
     assert_eq!(system.distro_codename.as_deref(), Some("trixie"));
     assert_eq!(system.kernel_release.as_deref(), Some("6.12.25-v8-16k+"));
     assert!(system.is_raspberry_pi);
-    assert!(report
-        .probe_health
-        .iter()
-        .any(|health| health.name == "board" && health.outcome == ProbeOutcome::Success));
+    assert!(
+        report
+            .probe_health
+            .iter()
+            .any(|health| health.name == "board" && health.outcome == ProbeOutcome::Success)
+    );
 }
 
 #[test]
@@ -81,7 +85,11 @@ fn fixture_report(name: &str) -> pi_doctor_core::Report {
             CommandOutput::Success("throttled=0x0".to_owned()),
         )
         .with_command_output("rpicam-hello", &["--list-cameras"], CommandOutput::Missing)
-        .with_command_output("libcamera-hello", &["--list-cameras"], CommandOutput::Missing)
+        .with_command_output(
+            "libcamera-hello",
+            &["--list-cameras"],
+            CommandOutput::Missing,
+        )
         .with_command_output("python3", &["--version"], CommandOutput::Missing)
         .with_command_output(
             "python3",

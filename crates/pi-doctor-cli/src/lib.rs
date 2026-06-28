@@ -27,13 +27,44 @@ use pi_doctor_probes::{
     throttling::{ThrottlingProbe, throttling_findings},
 };
 use serde::Serialize;
-use std::io::IsTerminal;
+use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
 use std::time::Duration;
 
 pub struct CliResponse {
     pub output: String,
     pub exit_code: u8,
+}
+
+pub fn init_logging() {
+    let env = env_logger::Env::default().filter_or("PI_DOCTOR_LOG", "warn");
+    let mut builder = env_logger::Builder::from_env(env);
+    builder.format_timestamp(None);
+
+    if std::env::var("PI_DOCTOR_LOG_FORMAT")
+        .map(|value| value.eq_ignore_ascii_case("json"))
+        .unwrap_or(false)
+    {
+        builder.format(|buffer, record| {
+            let message = record.args().to_string();
+            writeln!(
+                buffer,
+                "{}",
+                structured_log_line(record.level().as_str(), record.target(), &message)
+            )
+        });
+    }
+
+    let _ = builder.try_init();
+}
+
+pub fn structured_log_line(level: &str, target: &str, message: &str) -> String {
+    serde_json::json!({
+        "level": level.to_ascii_lowercase(),
+        "target": target,
+        "message": pi_doctor_bundle::redact(message),
+    })
+    .to_string()
 }
 
 pub fn run(cli: Cli) -> Result<CliResponse> {
@@ -259,28 +290,27 @@ fn supported_os_detection(system: &SystemSummary) -> SupportedOs {
         };
     }
 
-    match codename.as_deref() {
-        Some("bookworm") | Some("trixie") => SupportedOs {
+    if matches!(codename.as_deref(), Some("bookworm") | Some("trixie")) {
+        return SupportedOs {
             supported: true,
             family,
             version,
             codename,
             reason: None,
-        },
-        Some(value) => SupportedOs {
-            supported: false,
-            family,
-            version,
-            codename,
-            reason: Some(format!("OS codename `{value}` is outside the supported matrix")),
-        },
-        None => SupportedOs {
-            supported: false,
-            family,
-            version,
-            codename,
-            reason: Some("OS codename was unavailable".to_owned()),
-        },
+        };
+    }
+
+    let reason = match codename.as_deref() {
+        Some(value) => format!("OS codename `{value}` is outside the supported matrix"),
+        None => "OS codename was unavailable".to_owned(),
+    };
+
+    SupportedOs {
+        supported: false,
+        family,
+        version,
+        codename,
+        reason: Some(reason),
     }
 }
 
@@ -950,7 +980,7 @@ fn render_python_summary(report: &Report) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_check_report, exit_code_for_status, overall_status};
+    use super::{build_check_report, exit_code_for_status, overall_status, structured_log_line};
     use pi_doctor_core::{
         CommandOutput, Finding, Impact, OverallStatus, ProbeContext, ProbeOutcome, Severity,
     };
@@ -1017,5 +1047,26 @@ mod tests {
             .expect("camera health should be present");
 
         assert_eq!(camera_health.outcome, ProbeOutcome::TimedOut);
+    }
+
+    #[test]
+    fn structured_logs_are_json_and_redacted() {
+        let line = structured_log_line(
+            "WARN",
+            "pi_doctor::field",
+            "failed to inspect https://user:pass@example.test with sk-test1234567890abcdefghijklmnop",
+        );
+        let value: serde_json::Value =
+            serde_json::from_str(&line).expect("structured log should be valid JSON");
+
+        assert_eq!(value["level"], "warn");
+        assert_eq!(value["target"], "pi_doctor::field");
+        let message = value["message"]
+            .as_str()
+            .expect("log message should be a string");
+        assert!(!message.contains("https://user:pass@example.test"));
+        assert!(!message.contains("sk-test1234567890abcdefghijklmnop"));
+        assert!(message.contains("<redacted-url>"));
+        assert!(message.contains("<redacted>") || message.contains("<redacted-token>"));
     }
 }

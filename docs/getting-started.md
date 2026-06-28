@@ -87,9 +87,12 @@ Runtime diagnostics are emitted through `env_logger`.
 ```bash
 PI_DOCTOR_LOG=warn pi-doctor check
 PI_DOCTOR_LOG=debug pi-doctor check
+PI_DOCTOR_LOG=debug PI_DOCTOR_LOG_FORMAT=json pi-doctor --json check > report.json 2> pi-doctor.log.jsonl
 ```
 
-Logs are written to stderr and are not part of the stable output contract.
+Logs are written to stderr. Structured logs redact common personal-data and
+secret-like patterns before writing the message field, and they do not alter
+normal stdout JSON reports.
 
 ## Local Docs Preview
 

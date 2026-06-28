@@ -4,11 +4,7 @@ use std::io::Write;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
-    let _ = env_logger::Builder::from_env(
-        env_logger::Env::default().filter_or("PI_DOCTOR_LOG", "warn"),
-    )
-    .format_timestamp(None)
-    .try_init();
+    pi_doctor::init_logging();
 
     let cli = match Cli::try_parse().and_then(Cli::validate) {
         Ok(cli) => cli,

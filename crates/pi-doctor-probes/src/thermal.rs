@@ -31,10 +31,11 @@ pub struct ThermalProbe;
 
 impl ThermalProbe {
     pub fn collect(&self, ctx: &ProbeContext) -> Result<ThermalDetails, ProbeError> {
-        let raw = read_optional_text(ctx, "/sys/class/thermal/thermal_zone0/temp")?
-            .ok_or(ProbeError::ReadText {
+        let raw = read_optional_text(ctx, "/sys/class/thermal/thermal_zone0/temp")?.ok_or(
+            ProbeError::ReadText {
                 path: "/sys/class/thermal/thermal_zone0/temp",
-            })?;
+            },
+        )?;
         let celsius = parse_thermal_millidegrees(&raw)?;
         let band = celsius.map(classify_temperature);
 

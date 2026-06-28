@@ -1,5 +1,8 @@
 # Release Engineering
 
+Release sequencing, semantic versioning, release candidates, and staged
+validation are defined in [Release Process](release-process.md).
+
 ## Toolchain
 
 The supported Rust toolchain is locked in `rust-toolchain.toml` at Rust 1.88.0.

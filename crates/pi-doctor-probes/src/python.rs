@@ -34,7 +34,8 @@ impl PythonProbe {
         let executable = python_single_line(ctx, PYTHON_EXECUTABLE_ARGS)?;
         let in_virtualenv = python_single_line(ctx, PYTHON_VENV_ARGS)?.as_deref() == Some("1");
 
-        let externally_managed = if let Some(stdlib) = python_single_line(ctx, PYTHON_STDLIB_ARGS)? {
+        let externally_managed = if let Some(stdlib) = python_single_line(ctx, PYTHON_STDLIB_ARGS)?
+        {
             let path = format!("{}/EXTERNALLY-MANAGED", stdlib.replace('\\', "/"));
             ctx.path_exists(path)
         } else {

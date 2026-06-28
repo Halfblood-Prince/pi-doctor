@@ -182,13 +182,9 @@ fn parse_config(contents: &str) -> Vec<ConfigEntry> {
 
 fn duplicate_dtoverlay_findings(entries: &[ConfigEntry]) -> Vec<Finding> {
     let mut overlays_by_scope = BTreeMap::<(Option<String>, String), Vec<&ConfigEntry>>::new();
-    for entry in entries
-        .iter()
-        .filter(|entry| {
-            matches!(entry.kind, ConfigEntryKind::Setting)
-                && entry.key.as_deref() == Some("dtoverlay")
-        })
-    {
+    for entry in entries.iter().filter(|entry| {
+        matches!(entry.kind, ConfigEntryKind::Setting) && entry.key.as_deref() == Some("dtoverlay")
+    }) {
         let Some(overlay) = entry.value.as_deref().and_then(overlay_name) else {
             continue;
         };
@@ -227,13 +223,9 @@ fn duplicate_dtoverlay_findings(entries: &[ConfigEntry]) -> Vec<Finding> {
 
 fn conflicting_dtparam_findings(entries: &[ConfigEntry]) -> Vec<Finding> {
     let mut params_by_scope = BTreeMap::<(Option<String>, String), Vec<&ConfigEntry>>::new();
-    for entry in entries
-        .iter()
-        .filter(|entry| {
-            matches!(entry.kind, ConfigEntryKind::Setting)
-                && entry.key.as_deref() == Some("dtparam")
-        })
-    {
+    for entry in entries.iter().filter(|entry| {
+        matches!(entry.kind, ConfigEntryKind::Setting) && entry.key.as_deref() == Some("dtparam")
+    }) {
         let Some(param) = entry.value.as_deref().and_then(dtparam_name) else {
             continue;
         };

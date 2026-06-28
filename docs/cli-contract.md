@@ -80,11 +80,20 @@ change between releases.
 
 ## Logging Contract
 
-Logs are out-of-band diagnostics and are not part of the CLI output contract.
+Logs are out-of-band diagnostics and are not part of the report JSON contract.
 
 - Logs are controlled by `PI_DOCTOR_LOG`.
-- Logs go to stderr through `env_logger`.
-- Consumers should not parse log lines as structured API output.
+- Logs go to stderr.
+- Set `PI_DOCTOR_LOG_FORMAT=json` to emit JSON-lines logs with `level`,
+  `target`, and redacted `message` fields.
+- Normal `--json` command output remains on stdout.
+- Consumers should not treat log fields as a stable machine-report schema.
+
+Example:
+
+```bash
+PI_DOCTOR_LOG=debug PI_DOCTOR_LOG_FORMAT=json pi-doctor --json check > report.json 2> pi-doctor.log.jsonl
+```
 
 ## Read-Only Probe Contract
 

@@ -22,4 +22,7 @@ nav:
   - Exit Codes: exit-codes.md
   - JSON Schema: json-schema.md
   - Hardware Matrix: hardware-matrix.md
+  - Known Limitations: known-limitations.md
   - Release Engineering: release-engineering.md
+  - Release Process: release-process.md
+  - Maintainer Policy: maintainer-policy.md
