@@ -32,7 +32,8 @@ Run focused camera diagnostics.
 Run focused GPIO diagnostics.
 .TP
 .B support-bundle
-Create a redacted diagnostic bundle in the current directory.
+Create a diagnostic bundle. Bundles are sanitized by default and include a
+manifest with SHA-256 hashes.
 .TP
 .B completions SHELL
 Generate shell completion scripts.
@@ -50,6 +51,19 @@ Use verbose human output.
 .TP
 .B --no-color
 Disable color in human output.
+.TP
+.B --timeout SECONDS
+Set the per-command probe timeout.
+.TP
+.B support-bundle --output DIR
+Write the bundle under DIR instead of the current directory.
+.TP
+.B support-bundle --dry-run
+Show exactly which files would be collected without writing a bundle.
+.TP
+.B support-bundle --include-sensitive --acknowledge-sensitive-data
+Disable redaction for expert support cases. This may include hostnames, paths,
+serial numbers, URLs, tokens, and raw command output.
 .TP
 .B -h, --help
 Show command help.

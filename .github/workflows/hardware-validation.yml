@@ -2,6 +2,11 @@ name: Hardware Validation
 
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version to test, for example 0.1.0. Leave empty to build from source."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -20,22 +25,27 @@ jobs:
           - board: pi3
             os: bookworm-lite
             arch: armv7
+            target: armv7-unknown-linux-gnueabihf
             runs_on: [self-hosted, linux, armv7, raspberry-pi-3, bookworm]
           - board: pi4
             os: bookworm-desktop
             arch: aarch64
+            target: aarch64-unknown-linux-gnu
             runs_on: [self-hosted, linux, arm64, raspberry-pi-4, bookworm]
           - board: pi5
             os: trixie-lite
             arch: aarch64
+            target: aarch64-unknown-linux-gnu
             runs_on: [self-hosted, linux, arm64, raspberry-pi-5, trixie]
           - board: zero2w
             os: bookworm-lite
             arch: armv7
+            target: armv7-unknown-linux-gnueabihf
             runs_on: [self-hosted, linux, armv7, raspberry-pi-zero-2-w, bookworm]
           - board: compute-module
             os: bookworm-lite
             arch: aarch64
+            target: aarch64-unknown-linux-gnu
             runs_on: [self-hosted, linux, arm64, raspberry-pi-compute-module, bookworm]
     runs-on: ${{ matrix.runs_on }}
 
@@ -43,16 +53,50 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Install stable Rust
+      - name: Install pinned Rust
+        if: inputs.release_version == ''
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          toolchain: 1.88.0
 
       - name: Build native release binary
+        if: inputs.release_version == ''
         run: cargo build -p pi-doctor --release --locked
 
-      - name: Run native release check
+      - name: Download and install exact release archive
+        if: inputs.release_version != ''
+        run: |
+          version="${{ inputs.release_version }}"
+          target="${{ matrix.target }}"
+          archive="pi-doctor-v${version}-${target}.tar.gz"
+          url="https://github.com/${{ github.repository }}/releases/download/v${version}/${archive}"
+          mkdir -p .tmp/bin .tmp/release
+          curl -fsSL "$url" -o ".tmp/release/${archive}"
+          curl -fsSL "${url}.sha256" -o ".tmp/release/${archive}.sha256"
+          chmod +x scripts/install.sh
+          scripts/install.sh \
+            --archive ".tmp/release/${archive}" \
+            --checksum ".tmp/release/${archive}.sha256" \
+            --target "$target" \
+            --bin-dir "$PWD/.tmp/bin"
+
+      - name: Run source-built native release check
+        if: inputs.release_version == ''
         run: |
           set +e
           ./target/release/pi-doctor --json check > check.json
+          status=$?
+          set -e
+          case "$status" in
+            0|1|2|3) ;;
+            *) echo "unexpected check status: $status" >&2; exit 1 ;;
+          esac
+
+      - name: Run exact archive native release check
+        if: inputs.release_version != ''
+        run: |
+          set +e
+          "$PWD/.tmp/bin/pi-doctor" --json check > check.json
           status=$?
           set -e
           case "$status" in

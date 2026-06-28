@@ -8,7 +8,7 @@ use clap::CommandFactory;
 use clap_complete::generate;
 use cli::args::{Cli, Commands, DoctorTarget, ExplainTopic};
 use log::warn;
-use pi_doctor_bundle::{BundleInput, write_bundle};
+use pi_doctor_bundle::{BundleInput, BundlePrivacyMode, write_bundle};
 use pi_doctor_core::{
     CameraSummary, Finding, FindingDomain, FindingGroup, Impact, OverallStatus, ProbeContext,
     ProbeAvailabilitySummary, ProbeHealth, ProbeOutcome, Report, ReportMetadata, Severity,
@@ -28,6 +28,7 @@ use pi_doctor_probes::{
 };
 use serde::Serialize;
 use std::io::IsTerminal;
+use std::path::PathBuf;
 use std::time::Duration;
 
 pub struct CliResponse {
@@ -42,7 +43,24 @@ pub fn run(cli: Cli) -> Result<CliResponse> {
     match cli.command {
         Commands::Check {} => execute_check(settings, timeout),
         Commands::Explain { topic } => execute_explain(topic, timeout),
-        Commands::SupportBundle => execute_support_bundle(settings, timeout),
+        Commands::SupportBundle {
+            output,
+            dry_run,
+            include_sensitive,
+            acknowledge_sensitive_data: _,
+        } => execute_support_bundle(
+            settings,
+            timeout,
+            SupportBundleOptions {
+                output,
+                dry_run,
+                privacy_mode: if include_sensitive {
+                    BundlePrivacyMode::Sensitive
+                } else {
+                    BundlePrivacyMode::Sanitized
+                },
+            },
+        ),
         Commands::Doctor { target } => execute_doctor(target, settings, timeout),
         Commands::Completions { shell } => execute_completions(shell),
     }
@@ -355,9 +373,48 @@ fn execute_explain(topic: ExplainTopic, timeout: Duration) -> Result<CliResponse
     })
 }
 
-fn execute_support_bundle(settings: output::RenderSettings, timeout: Duration) -> Result<CliResponse> {
+#[derive(Debug)]
+struct SupportBundleOptions {
+    output: PathBuf,
+    dry_run: bool,
+    privacy_mode: BundlePrivacyMode,
+}
+
+fn execute_support_bundle(
+    settings: output::RenderSettings,
+    timeout: Duration,
+    options: SupportBundleOptions,
+) -> Result<CliResponse> {
     use std::collections::BTreeMap;
-    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let plan = support_bundle_collection_plan();
+    if options.dry_run {
+        let response = SupportBundleJson {
+            metadata: ReportMetadata::new("support-bundle"),
+            schema_version: "1.0.0",
+            dry_run: true,
+            output_root: options.output.display().to_string(),
+            bundle_dir: String::new(),
+            privacy_mode: privacy_mode_label(options.privacy_mode),
+            redaction_enabled: options.privacy_mode == BundlePrivacyMode::Sanitized,
+            files: plan.iter().map(|item| item.path.to_owned()).collect(),
+            collection_plan: plan.clone(),
+            manifest: Vec::new(),
+            report_schema_version: "1.0.0",
+        };
+
+        return if matches!(settings.mode, output::OutputMode::Json) {
+            Ok(CliResponse {
+                output: format!("{}\n", serde_json::to_string_pretty(&response)?),
+                exit_code: 0,
+            })
+        } else {
+            Ok(CliResponse {
+                output: render_support_bundle_preview(&options, &plan),
+                exit_code: 0,
+            })
+        };
+    }
 
     let ctx = ProbeContext::new().with_timeout(timeout);
     let report = build_check_report(&ctx);
@@ -418,17 +475,14 @@ fn execute_support_bundle(settings: output::RenderSettings, timeout: Duration) -
         render_python_summary(&report),
     );
 
-    let seconds = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .context("failed to compute support bundle timestamp")?
-        .as_secs();
-    let bundle_name = format!("pi-doctor-bundle-{seconds}");
+    let bundle_name = support_bundle_name()?;
     let result = write_bundle(
-        ".",
+        &options.output,
         &bundle_name,
         &BundleInput {
             report,
             extra_files,
+            privacy_mode: options.privacy_mode,
         },
     )
     .context("failed to write support bundle")?;
@@ -437,8 +491,22 @@ fn execute_support_bundle(settings: output::RenderSettings, timeout: Duration) -
         let response = SupportBundleJson {
             metadata: bundle_metadata,
             schema_version: "1.0.0",
+            dry_run: false,
+            output_root: options.output.display().to_string(),
             bundle_dir: result.bundle_dir.display().to_string(),
+            privacy_mode: privacy_mode_label(result.privacy_mode),
+            redaction_enabled: result.privacy_mode == BundlePrivacyMode::Sanitized,
             files: result.files.clone(),
+            collection_plan: plan,
+            manifest: result
+                .manifest
+                .iter()
+                .map(|entry| ManifestEntryJson {
+                    path: entry.path.clone(),
+                    sha256: entry.sha256.clone(),
+                    bytes: entry.bytes,
+                })
+                .collect(),
             report_schema_version: "1.0.0",
         };
         Ok(CliResponse {
@@ -447,13 +515,151 @@ fn execute_support_bundle(settings: output::RenderSettings, timeout: Duration) -
         })
     } else {
         Ok(CliResponse {
-            output: format!(
-                "Support bundle written to {}\nFiles:\n{}\n",
-                result.bundle_dir.display(),
-                result.files.join("\n")
-            ),
+            output: render_support_bundle_result(&result, &options, &plan),
             exit_code: 0,
         })
+    }
+}
+
+fn support_bundle_name() -> Result<String> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .context("failed to compute support bundle timestamp")?
+        .as_nanos();
+    Ok(format!("pi-doctor-bundle-{nanos}-{}", std::process::id()))
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct SupportBundlePlanItem {
+    path: &'static str,
+    source: &'static str,
+}
+
+fn support_bundle_collection_plan() -> Vec<SupportBundlePlanItem> {
+    vec![
+        SupportBundlePlanItem {
+            path: "report.json",
+            source: "machine-readable check report",
+        },
+        SupportBundlePlanItem {
+            path: "report.txt",
+            source: "human-readable check report",
+        },
+        SupportBundlePlanItem {
+            path: "privacy.txt",
+            source: "bundle privacy mode and redaction notice",
+        },
+        SupportBundlePlanItem {
+            path: "summary/system.txt",
+            source: "board, OS, kernel, and architecture summary",
+        },
+        SupportBundlePlanItem {
+            path: "summary/config.txt",
+            source: "config.txt diagnostic explanation",
+        },
+        SupportBundlePlanItem {
+            path: "summary/camera.txt",
+            source: "camera diagnostic explanation",
+        },
+        SupportBundlePlanItem {
+            path: "summary/gpio.txt",
+            source: "GPIO diagnostic explanation",
+        },
+        SupportBundlePlanItem {
+            path: "summary/python.txt",
+            source: "Python environment explanation",
+        },
+        SupportBundlePlanItem {
+            path: "raw/firmware/version.txt",
+            source: "`vcgencmd version` output when available",
+        },
+        SupportBundlePlanItem {
+            path: "raw/firmware/get_throttled.txt",
+            source: "`vcgencmd get_throttled` output when available",
+        },
+        SupportBundlePlanItem {
+            path: "raw/thermal/temp.txt",
+            source: "/sys/class/thermal/thermal_zone0/temp",
+        },
+        SupportBundlePlanItem {
+            path: "raw/config/source-path.txt",
+            source: "detected active config.txt path",
+        },
+        SupportBundlePlanItem {
+            path: "raw/camera/inventory.txt",
+            source: "parsed camera inventory summary",
+        },
+        SupportBundlePlanItem {
+            path: "raw/python/summary.txt",
+            source: "Python executable, venv, and package summary",
+        },
+        SupportBundlePlanItem {
+            path: "manifest.txt",
+            source: "SHA-256 hashes for bundle payload files",
+        },
+    ]
+}
+
+fn render_support_bundle_preview(
+    options: &SupportBundleOptions,
+    plan: &[SupportBundlePlanItem],
+) -> String {
+    let mut lines = vec![
+        "Support bundle dry run".to_owned(),
+        format!("Output directory: {}", options.output.display()),
+        format!(
+            "Privacy mode: {}{}",
+            privacy_mode_label(options.privacy_mode),
+            if options.privacy_mode == BundlePrivacyMode::Sanitized {
+                " (redaction enabled)"
+            } else {
+                " (redaction disabled)"
+            }
+        ),
+        "Files to collect:".to_owned(),
+    ];
+    for item in plan {
+        lines.push(format!("  {} - {}", item.path, item.source));
+    }
+    lines.push("No files were written.".to_owned());
+    format!("{}\n", lines.join("\n"))
+}
+
+fn render_support_bundle_result(
+    result: &pi_doctor_bundle::BundleResult,
+    options: &SupportBundleOptions,
+    plan: &[SupportBundlePlanItem],
+) -> String {
+    let mut lines = vec![
+        format!("Support bundle written to {}", result.bundle_dir.display()),
+        format!("Output directory: {}", options.output.display()),
+        format!(
+            "Privacy mode: {}{}",
+            privacy_mode_label(result.privacy_mode),
+            if result.privacy_mode == BundlePrivacyMode::Sanitized {
+                " (redaction enabled)"
+            } else {
+                " (redaction disabled)"
+            }
+        ),
+        "Collected files:".to_owned(),
+    ];
+    for item in plan {
+        lines.push(format!("  {} - {}", item.path, item.source));
+    }
+    lines.push("Manifest hashes:".to_owned());
+    for entry in &result.manifest {
+        lines.push(format!("  {}  {}  {}", entry.sha256, entry.bytes, entry.path));
+    }
+    format!("{}\n", lines.join("\n"))
+}
+
+fn privacy_mode_label(mode: BundlePrivacyMode) -> &'static str {
+    match mode {
+        BundlePrivacyMode::Sanitized => "sanitized",
+        BundlePrivacyMode::Sensitive => "sensitive",
     }
 }
 
@@ -494,9 +700,22 @@ where
 struct SupportBundleJson {
     metadata: ReportMetadata,
     schema_version: &'static str,
+    dry_run: bool,
+    output_root: String,
     bundle_dir: String,
+    privacy_mode: &'static str,
+    redaction_enabled: bool,
     files: Vec<String>,
+    collection_plan: Vec<SupportBundlePlanItem>,
+    manifest: Vec<ManifestEntryJson>,
     report_schema_version: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct ManifestEntryJson {
+    path: String,
+    sha256: String,
+    bytes: usize,
 }
 
 fn render_doctor_json(target: DoctorTarget, ctx: &ProbeContext) -> Result<CliResponse> {

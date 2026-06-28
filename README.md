@@ -43,6 +43,17 @@ curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/downlo
 bash install.sh --version 0.1.0 --bin-dir ~/.local/bin
 ```
 
+Use an explicit target such as `aarch64-unknown-linux-gnu` for Raspberry Pi OS
+64-bit, `armv7-unknown-linux-gnueabihf` for 32-bit ARM, or the matching `musl`
+target when you want the static build.
+
+Rollback and uninstall are handled by the installer:
+
+```bash
+bash install.sh --rollback --bin-dir ~/.local/bin
+bash install.sh --uninstall --bin-dir ~/.local/bin
+```
+
 ### Debian
 
 Debian packaging lives in [`debian/`](debian/) and is prepared for mentors
@@ -63,8 +74,9 @@ sudo apt install pi-doctor
 
 ### Homebrew
 
-A Homebrew formula template is provided at
-[`packaging/homebrew/pi-doctor.rb.in`](packaging/homebrew/pi-doctor.rb.in).
+A Homebrew formula is provided at
+[`packaging/homebrew/pi-doctor.rb`](packaging/homebrew/pi-doctor.rb) and should
+be published only after the matching signed release artifacts exist.
 
 ## Usage
 
@@ -77,7 +89,16 @@ pi-doctor explain config
 pi-doctor explain python
 pi-doctor doctor camera
 pi-doctor doctor gpio
-pi-doctor support-bundle
+pi-doctor support-bundle --dry-run
+pi-doctor support-bundle --output ./bundles
+```
+
+Support bundles are sanitized by default and include `manifest.txt` with
+SHA-256 hashes for payload files. Sensitive bundles require an explicit
+acknowledgement:
+
+```bash
+pi-doctor support-bundle --include-sensitive --acknowledge-sensitive-data
 ```
 
 `pi-doctor check` exits with:

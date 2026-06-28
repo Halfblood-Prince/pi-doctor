@@ -11,6 +11,7 @@ target=""
 binary=""
 output_dir="dist"
 version=""
+source_date_epoch="${SOURCE_DATE_EPOCH:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -61,6 +62,21 @@ if [[ -z "$version" ]]; then
   )"
 fi
 
+if [[ -z "$source_date_epoch" ]]; then
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    source_date_epoch="$(git log -1 --format=%ct)"
+  else
+    source_date_epoch="0"
+  fi
+fi
+
+if ! [[ "$source_date_epoch" =~ ^[0-9]+$ ]]; then
+  echo "SOURCE_DATE_EPOCH must be an integer Unix timestamp" >&2
+  exit 2
+fi
+
+export TZ=UTC
+
 archive_root="pi-doctor-v${version}-${target}"
 stage_dir="${output_dir}/${archive_root}"
 archive_path="${output_dir}/${archive_root}.tar.gz"
@@ -78,7 +94,20 @@ cp LICENSE "$stage_dir/LICENSE"
 "$binary" completions fish > "$stage_dir/completions/pi-doctor.fish"
 "$binary" completions powershell > "$stage_dir/completions/pi-doctor.ps1"
 
-tar -C "$output_dir" -czf "$archive_path" "$archive_root"
+find "$stage_dir" -type d -exec chmod 0755 {} +
+find "$stage_dir" -type f -exec chmod 0644 {} +
+chmod 0755 "$stage_dir/pi-doctor"
+find "$stage_dir" -exec touch -h -d "@${source_date_epoch}" {} +
+
+rm -f "$archive_path" "$checksum_path"
+tar \
+  --sort=name \
+  --mtime="@${source_date_epoch}" \
+  --owner=0 \
+  --group=0 \
+  --numeric-owner \
+  -C "$output_dir" \
+  -cf - "$archive_root" | gzip -n > "$archive_path"
 (
   cd "$output_dir"
   sha256sum "$(basename "$archive_path")" > "$(basename "$checksum_path")"

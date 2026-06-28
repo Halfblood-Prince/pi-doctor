@@ -134,6 +134,23 @@ External commands run by probes:
 Command output is bounded. A command that exceeds the output limit is reported
 as `command_failed` in `probe_health` and does not block the rest of the report.
 
+## Support Bundle Privacy Contract
+
+`pi-doctor support-bundle` writes sanitized bundles by default. Use
+`--dry-run` to print the complete collection plan without reading probe data or
+writing files. Use `--output DIR` to choose the output directory.
+
+Sensitive mode requires both flags:
+
+- `--include-sensitive`
+- `--acknowledge-sensitive-data`
+
+Sanitized bundles redact common personal and secret-bearing patterns including
+home paths, hostnames, usernames, IPv4 and IPv6 addresses, MAC addresses, serial
+numbers, Wi-Fi SSIDs, URLs, tokens, credentials, device IDs, and private-key
+blocks. Every bundle contains `privacy.txt` and a `manifest.txt` with SHA-256
+hashes for payload files.
+
 ## Config Rule Contract
 
 `config.txt` diagnostics are section-aware:

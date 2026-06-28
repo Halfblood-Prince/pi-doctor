@@ -1,7 +1,7 @@
 Source: pi-doctor
 Section: utils
 Priority: optional
-Maintainer: Halfblood-Prince <147537283+Halfblood-Prince@users.noreply.github.com>
+Maintainer: Halfblood-Prince <Halfblood-Prince@users.noreply.github.com>
 Build-Depends:
  debhelper-compat (= 13),
  dh-cargo,

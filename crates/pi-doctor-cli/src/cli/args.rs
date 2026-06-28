@@ -1,5 +1,6 @@
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum, error::ErrorKind};
 use clap_complete::Shell;
+use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -39,7 +40,16 @@ pub enum Commands {
         topic: ExplainTopic,
     },
     #[command(about = "Create a support bundle with reports and raw captures")]
-    SupportBundle,
+    SupportBundle {
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        output: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        include_sensitive: bool,
+        #[arg(long, requires = "include_sensitive")]
+        acknowledge_sensitive_data: bool,
+    },
     #[command(about = "Run a focused diagnostic doctor")]
     Doctor {
         #[arg(value_enum)]
@@ -89,12 +99,26 @@ impl Cli {
         if self.json
             && !matches!(
                 self.command,
-                Commands::Check {} | Commands::Doctor { .. } | Commands::SupportBundle
+                Commands::Check {} | Commands::Doctor { .. } | Commands::SupportBundle { .. }
             )
         {
             return Err(Self::command().error(
                 ErrorKind::ArgumentConflict,
                 "`--json` is supported with `pi-doctor check`, `pi-doctor doctor`, and `pi-doctor support-bundle`",
+            ));
+        }
+
+        if let Commands::SupportBundle {
+            include_sensitive,
+            acknowledge_sensitive_data,
+            ..
+        } = &self.command
+            && *include_sensitive
+            && !*acknowledge_sensitive_data
+        {
+            return Err(Self::command().error(
+                ErrorKind::ArgumentConflict,
+                "`--include-sensitive` requires `--acknowledge-sensitive-data`",
             ));
         }
 
@@ -153,5 +177,29 @@ mod tests {
             .expect("timeout should parse");
 
         assert_eq!(cli.timeout, 9);
+    }
+
+    #[test]
+    fn sensitive_bundle_requires_explicit_acknowledgement() {
+        let error = Cli::try_parse_from(["pi-doctor", "support-bundle", "--include-sensitive"])
+            .and_then(Cli::validate)
+            .expect_err("sensitive bundle should require acknowledgement");
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn support_bundle_accepts_output_path_and_dry_run() {
+        let cli = Cli::try_parse_from([
+            "pi-doctor",
+            "support-bundle",
+            "--output",
+            "bundles",
+            "--dry-run",
+        ])
+        .and_then(Cli::validate)
+        .expect("support bundle options should parse");
+
+        assert!(matches!(cli.command, super::Commands::SupportBundle { .. }));
     }
 }

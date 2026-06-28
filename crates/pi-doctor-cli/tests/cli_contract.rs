@@ -51,7 +51,12 @@ fn json_contract_exposes_expected_top_level_fields() {
 #[test]
 fn non_check_commands_return_zero_on_success() {
     for command in [
-        Commands::SupportBundle,
+        Commands::SupportBundle {
+            output: ".".into(),
+            dry_run: true,
+            include_sensitive: false,
+            acknowledge_sensitive_data: false,
+        },
         Commands::Completions {
             shell: clap_complete::Shell::Bash,
         },
@@ -98,6 +103,33 @@ fn doctor_camera_accepts_json_mode() {
     assert_eq!(value["schema_version"], "1.0.0");
     assert_eq!(value["target"], "camera");
     assert_eq!(value["metadata"]["command"], "doctor camera");
+    assert_eq!(response.exit_code, 0);
+}
+
+#[test]
+fn support_bundle_dry_run_lists_files_without_writing() {
+    let response = pi_doctor::run(Cli {
+        json: true,
+        quiet: false,
+        verbose: false,
+        no_color: false,
+        timeout: 1,
+        command: Commands::SupportBundle {
+            output: ".".into(),
+            dry_run: true,
+            include_sensitive: false,
+            acknowledge_sensitive_data: false,
+        },
+    })
+    .expect("support bundle dry-run json should render");
+
+    let value: Value = serde_json::from_str(&response.output).expect("json should parse");
+    assert_eq!(value["dry_run"], true);
+    assert_eq!(value["privacy_mode"], "sanitized");
+    assert_eq!(value["redaction_enabled"], true);
+    assert!(value["files"].as_array().expect("files should be an array").iter().any(
+        |path| path == "manifest.txt"
+    ));
     assert_eq!(response.exit_code, 0);
 }
 

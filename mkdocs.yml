@@ -22,3 +22,4 @@ nav:
   - Exit Codes: exit-codes.md
   - JSON Schema: json-schema.md
   - Hardware Matrix: hardware-matrix.md
+  - Release Engineering: release-engineering.md

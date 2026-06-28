@@ -24,10 +24,18 @@ curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/downlo
 bash install.sh --version 0.1.0 --bin-dir ~/.local/bin
 ```
 
+The installer keeps the previous binary as a rollback point:
+
+```bash
+bash install.sh --rollback --bin-dir ~/.local/bin
+bash install.sh --uninstall --bin-dir ~/.local/bin
+```
+
 ### Homebrew
 
-A Homebrew formula template is provided in `packaging/homebrew/pi-doctor.rb.in`
-for tap-based publishing.
+A Homebrew formula is provided in `packaging/homebrew/pi-doctor.rb`. Publish it
+only after the matching release archive, checksum, SBOM, and provenance
+attestation are available.
 
 ### Debian
 
@@ -49,8 +57,27 @@ pi-doctor --json check
 pi-doctor --timeout 5 check
 pi-doctor explain throttling
 pi-doctor doctor gpio
-pi-doctor support-bundle
+pi-doctor support-bundle --dry-run
+pi-doctor support-bundle --output ./bundles
 pi-doctor completions bash
+```
+
+## Support Bundles
+
+Support bundle creation is explicit and shows the collection plan before
+writing when `--dry-run` is used.
+
+```bash
+pi-doctor support-bundle --dry-run
+pi-doctor support-bundle --output ./bundles
+```
+
+The default bundle is sanitized and contains `privacy.txt` plus `manifest.txt`
+with SHA-256 hashes for payload files. Use sensitive mode only for trusted
+expert support:
+
+```bash
+pi-doctor support-bundle --include-sensitive --acknowledge-sensitive-data
 ```
 
 ## Logging

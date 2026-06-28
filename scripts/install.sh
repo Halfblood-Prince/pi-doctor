@@ -9,6 +9,8 @@ archive_path=""
 checksum_path=""
 skip_attestation="false"
 tmp_dir=""
+rollback="false"
+uninstall="false"
 
 cleanup() {
   if [[ -n "${tmp_dir}" && -d "${tmp_dir}" ]]; then
@@ -21,6 +23,7 @@ usage() {
   cat <<'EOF'
 Usage: install.sh [--version <semver>] [--target <triple>] [--bin-dir <path>]
                   [--archive <path> --checksum <path>] [--skip-attestation]
+                  [--rollback | --uninstall]
 
 Installs pi-doctor from a verified GitHub release archive or a verified local
 archive. Local archives require a matching --checksum file.
@@ -53,6 +56,14 @@ while [[ $# -gt 0 ]]; do
       skip_attestation="true"
       shift
       ;;
+    --rollback)
+      rollback="true"
+      shift
+      ;;
+    --uninstall)
+      uninstall="true"
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -77,6 +88,29 @@ detect_target() {
       exit 1
       ;;
   esac
+}
+
+backup_path() {
+  echo "${bin_dir}/.pi-doctor.previous"
+}
+
+rollback_binary() {
+  local backup tmp_binary
+  backup="$(backup_path)"
+  if [[ ! -f "$backup" ]]; then
+    echo "no rollback binary found at $backup" >&2
+    exit 1
+  fi
+  mkdir -p "$bin_dir"
+  tmp_binary="$(mktemp "${bin_dir}/.pi-doctor.rollback.XXXXXX")"
+  install -m 0755 "$backup" "$tmp_binary"
+  mv -f "$tmp_binary" "${bin_dir}/pi-doctor"
+  echo "rolled back pi-doctor using $backup"
+}
+
+uninstall_binary() {
+  rm -f "${bin_dir}/pi-doctor"
+  echo "removed ${bin_dir}/pi-doctor"
 }
 
 resolve_latest_version() {
@@ -111,8 +145,11 @@ infer_local_archive_metadata() {
   base="$(basename "$archive_path")"
   for candidate in \
     x86_64-unknown-linux-gnu \
+    x86_64-unknown-linux-musl \
     aarch64-unknown-linux-gnu \
-    armv7-unknown-linux-gnueabihf
+    aarch64-unknown-linux-musl \
+    armv7-unknown-linux-gnueabihf \
+    armv7-unknown-linux-musleabihf
   do
     if [[ "$base" == pi-doctor-v*-"${candidate}".tar.gz ]]; then
       target="$candidate"
@@ -190,7 +227,7 @@ EOF
 }
 
 install_binary() {
-  local archive_root extract_dir binary_path tmp_binary
+  local archive_root extract_dir binary_path tmp_binary backup
   archive_root="pi-doctor-v${version}-${target}"
   tmp_dir="${tmp_dir:-$(mktemp -d)}"
   extract_dir="${tmp_dir}/extract"
@@ -205,9 +242,28 @@ install_binary() {
 
   tmp_binary="$(mktemp "${bin_dir}/.pi-doctor.XXXXXX")"
   install -m 0755 "$binary_path" "$tmp_binary"
+  backup="$(backup_path)"
+  if [[ -f "${bin_dir}/pi-doctor" ]]; then
+    install -m 0755 "${bin_dir}/pi-doctor" "$backup"
+  fi
   mv -f "$tmp_binary" "${bin_dir}/pi-doctor"
   echo "installed pi-doctor to ${bin_dir}/pi-doctor"
 }
+
+if [[ "$rollback" == "true" && "$uninstall" == "true" ]]; then
+  echo "--rollback and --uninstall cannot be used together" >&2
+  exit 2
+fi
+
+if [[ "$rollback" == "true" ]]; then
+  rollback_binary
+  exit 0
+fi
+
+if [[ "$uninstall" == "true" ]]; then
+  uninstall_binary
+  exit 0
+fi
 
 if [[ -z "$archive_path" ]]; then
   download_release_files

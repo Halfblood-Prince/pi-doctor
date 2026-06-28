@@ -36,7 +36,8 @@ Run focused help:
 ```bash
 pi-doctor explain throttling
 pi-doctor doctor gpio
-pi-doctor support-bundle
+pi-doctor support-bundle --dry-run
+pi-doctor support-bundle --output ./bundles
 ```
 
 ## Documentation Map

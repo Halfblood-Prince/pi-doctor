@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: pi-doctor
-Upstream-Contact: Halfblood-Prince <147537283+Halfblood-Prince@users.noreply.github.com>
+Upstream-Contact: Halfblood-Prince <Halfblood-Prince@users.noreply.github.com>
 Source: https://github.com/Halfblood-Prince/pi-doctor
 
 Files: *
