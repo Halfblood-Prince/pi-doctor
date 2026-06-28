@@ -33,7 +33,7 @@ Confirmed vulnerabilities need:
 
 - a fix
 - a regression test where practical
-- a changelog entry
+- a release-notes entry
 - advisory publication when the fix is released
 
 ## Release Authority

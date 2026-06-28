@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: pi-doctor version
-      placeholder: "pi-doctor 0.1.0"
+      placeholder: "pi-doctor 1.0.0"
     validations:
       required: true
   - type: input

@@ -5,7 +5,7 @@ expression: json
 {
   "metadata": {
     "command": "check",
-    "pi_doctor_version": "0.1.0",
+    "pi_doctor_version": "1.0.0",
     "build_revision": null,
     "target_architecture": "test-arch",
     "supported_os": {

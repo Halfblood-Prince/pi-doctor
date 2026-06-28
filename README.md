@@ -18,7 +18,7 @@ stable schemas.
 ### Release Archive
 
 ```bash
-version=0.1.0
+version=1.0.0
 target=x86_64-unknown-linux-gnu
 curl -fsSLO "https://github.com/Halfblood-Prince/pi-doctor/releases/download/v${version}/pi-doctor-v${version}-${target}.tar.gz"
 curl -fsSLO "https://github.com/Halfblood-Prince/pi-doctor/releases/download/v${version}/pi-doctor-v${version}-${target}.tar.gz.sha256"
@@ -46,7 +46,7 @@ curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/downlo
 curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh.sha256
 sha256sum -c install.sh.sha256
 gh attestation verify install.sh --repo Halfblood-Prince/pi-doctor
-bash install.sh --version 0.1.0 --bin-dir ~/.local/bin
+bash install.sh --version 1.0.0 --bin-dir ~/.local/bin
 ```
 
 The manual archive route above has the smallest installer trust base: download
@@ -72,7 +72,7 @@ review. Until the package is accepted into Debian, build it locally:
 sudo apt install devscripts equivs build-essential lintian autopkgtest
 sudo mk-build-deps --install --remove --tool "apt-get -y" debian/control
 dpkg-buildpackage -us -uc -b
-sudo apt install ../pi-doctor_0.1.0-1_*.deb
+sudo apt install ../pi-doctor_1.0.0-1_*.deb
 ```
 
 Once accepted into Debian, installation will be the normal apt path:
@@ -144,7 +144,6 @@ The JSON contract is documented in [`docs/cli-contract.md`](docs/cli-contract.md
 
 - Security policy: [`SECURITY.md`](SECURITY.md)
 - Contributing guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - Maintainer policy: [`MAINTAINERS.md`](MAINTAINERS.md)
 - Release process: [`docs/release-process.md`](docs/release-process.md)
 - Known limitations: [`docs/known-limitations.md`](docs/known-limitations.md)

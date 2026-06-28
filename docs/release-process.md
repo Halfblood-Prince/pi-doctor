@@ -53,7 +53,7 @@ Before a final release:
 
 For final release tags:
 
-1. Update `CHANGELOG.md`.
+1. Update the GitHub release notes.
 2. Confirm version numbers in Cargo, Debian metadata, docs, and release scripts.
 3. Build signed artifacts and publish checksums, SBOM, and attestations.
 4. Verify GitHub release assets from a clean machine.

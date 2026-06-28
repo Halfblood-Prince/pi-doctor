@@ -371,7 +371,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "pi-doctor"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -389,7 +389,7 @@ dependencies = [
 
 [[package]]
 name = "pi-doctor-bundle"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "pi-doctor-core",
  "pi-doctor-report",
@@ -399,14 +399,14 @@ dependencies = [
 
 [[package]]
 name = "pi-doctor-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "pi-doctor-probes"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "log",
  "pi-doctor-core",
@@ -416,7 +416,7 @@ dependencies = [
 
 [[package]]
 name = "pi-doctor-report"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "pi-doctor-core",
  "serde_json",

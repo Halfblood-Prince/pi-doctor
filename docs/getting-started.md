@@ -5,7 +5,7 @@
 ### Release archive
 
 ```bash
-version=0.1.0
+version=1.0.0
 target=x86_64-unknown-linux-gnu
 curl -fsSLO "https://github.com/Halfblood-Prince/pi-doctor/releases/download/v${version}/pi-doctor-v${version}-${target}.tar.gz"
 curl -fsSLO "https://github.com/Halfblood-Prince/pi-doctor/releases/download/v${version}/pi-doctor-v${version}-${target}.tar.gz.sha256"
@@ -21,7 +21,7 @@ install -m 0755 "pi-doctor-v${version}-${target}/pi-doctor" ~/.local/bin/pi-doct
 
 ```bash
 curl -fsSLO https://github.com/Halfblood-Prince/pi-doctor/releases/latest/download/install.sh
-bash install.sh --version 0.1.0 --bin-dir ~/.local/bin
+bash install.sh --version 1.0.0 --bin-dir ~/.local/bin
 ```
 
 The installer keeps the previous binary as a rollback point:
@@ -46,7 +46,7 @@ package is accepted into Debian, build and install it locally:
 sudo apt install devscripts equivs build-essential lintian autopkgtest
 sudo mk-build-deps --install --remove --tool "apt-get -y" debian/control
 dpkg-buildpackage -us -uc -b
-sudo apt install ../pi-doctor_0.1.0-1_*.deb
+sudo apt install ../pi-doctor_1.0.0-1_*.deb
 ```
 
 ## Core Commands

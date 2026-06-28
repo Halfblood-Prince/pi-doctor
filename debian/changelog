@@ -1,7 +1,7 @@
-pi-doctor (0.1.0-1) unstable; urgency=medium
+pi-doctor (1.0.0-1) unstable; urgency=medium
 
   * Initial release.
   * Package the Rust workspace binary and installed-package autopkgtest.
   * License upstream and Debian packaging under Apache-2.0.
 
- -- Halfblood-Prince <Halfblood-Prince@users.noreply.github.com>  Tue, 23 Jun 2026 18:42:18 +0200
+ -- Halfblood-Prince <Halfblood-Prince@users.noreply.github.com>  Sun, 28 Jun 2026 11:58:00 +0200
