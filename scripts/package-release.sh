@@ -3,12 +3,13 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: scripts/package-release.sh --target <triple> --binary <path> [--output-dir <dir>] [--version <semver>]
+Usage: scripts/package-release.sh --target <triple> --binary <path> [--completions-binary <path>] [--output-dir <dir>] [--version <semver>]
 EOF
 }
 
 target=""
 binary=""
+completions_binary=""
 output_dir="dist"
 version=""
 source_date_epoch="${SOURCE_DATE_EPOCH:-}"
@@ -21,6 +22,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --binary)
       binary="$2"
+      shift 2
+      ;;
+    --completions-binary)
+      completions_binary="$2"
       shift 2
       ;;
     --output-dir)
@@ -46,6 +51,10 @@ done
 if [[ -z "$target" || -z "$binary" ]]; then
   usage >&2
   exit 2
+fi
+
+if [[ -z "$completions_binary" ]]; then
+  completions_binary="$binary"
 fi
 
 if [[ -z "$version" ]]; then
@@ -89,10 +98,10 @@ cp "$binary" "$stage_dir/pi-doctor"
 cp README.md "$stage_dir/README.md"
 cp LICENSE "$stage_dir/LICENSE"
 
-"$binary" completions bash > "$stage_dir/completions/pi-doctor.bash"
-"$binary" completions zsh > "$stage_dir/completions/_pi-doctor"
-"$binary" completions fish > "$stage_dir/completions/pi-doctor.fish"
-"$binary" completions powershell > "$stage_dir/completions/pi-doctor.ps1"
+"$completions_binary" completions bash > "$stage_dir/completions/pi-doctor.bash"
+"$completions_binary" completions zsh > "$stage_dir/completions/_pi-doctor"
+"$completions_binary" completions fish > "$stage_dir/completions/pi-doctor.fish"
+"$completions_binary" completions powershell > "$stage_dir/completions/pi-doctor.ps1"
 
 find "$stage_dir" -type d -exec chmod 0755 {} +
 find "$stage_dir" -type f -exec chmod 0644 {} +

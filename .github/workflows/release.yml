@@ -76,12 +76,18 @@ jobs:
       - name: Build release binary
         run: cross build -p pi-doctor --release --locked --target ${{ matrix.target }}
 
+      - name: Build host helper for completions
+        run: cargo build -p pi-doctor --release --locked
+
       - name: Package archive
         run: |
+          version="${GITHUB_REF_NAME#v}"
           chmod +x scripts/package-release.sh
           scripts/package-release.sh \
             --target ${{ matrix.target }} \
-            --binary target/${{ matrix.target }}/release/pi-doctor
+            --binary target/${{ matrix.target }}/release/pi-doctor \
+            --completions-binary target/release/pi-doctor \
+            --version "$version"
 
       - name: Generate SBOM
         run: |

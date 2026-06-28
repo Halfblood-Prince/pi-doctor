@@ -2,18 +2,19 @@
 
 ## Supported Versions
 
-`pi-doctor` is pre-1.0 software. The CLI and JSON contracts are versioned and
-tested, but the project will not declare `1.0.0` until those contracts are
-frozen for normal users and automation.
+`pi-doctor` `v1.0.0` is the first stable release line. The CLI exit-code
+contract and the `check --json` v1 schema are treated as stable for normal
+users and automation.
 
 Security fixes are provided for:
 
-- the latest released `0.x` line
+- the latest released `1.x` line
 - release candidates for the next public release while they are under staged
   validation
 
-Older `0.x` releases may receive security fixes when the fix is low risk and
-does not conflict with the current release line.
+Older `0.x` releases are not supported. They may receive best-effort fixes only
+when the change is low risk and does not conflict with the supported release
+line.
 
 ## Reporting a Vulnerability
 

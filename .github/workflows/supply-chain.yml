@@ -2,10 +2,16 @@ name: Supply Chain
 
 on:
   push:
+    branches:
+      - main
+    tags:
+      - "v*"
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,14 +19,21 @@ env:
 jobs:
   dependency-review:
     name: dependency review
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Dependency review
+        if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+
+      - name: Dependency review event guard
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "GitHub Dependency Review compares pull-request dependency diffs."
+          echo "Push, tag, and manual runs are covered by cargo audit and cargo deny."
 
   cargo-policy:
     name: cargo audit and deny
