@@ -9,7 +9,7 @@ hardware coverage. That includes:
 - reviewing privacy impact for logs, support bundles, fixtures, and docs
 - keeping CI, schema validation, and supply-chain checks required for releases
 - documenting known limitations before release
-- avoiding `1.0.0` until the public CLI and JSON contracts are frozen
+- preserving the stable `1.x` CLI and JSON contracts
 
 ## Review Rules
 

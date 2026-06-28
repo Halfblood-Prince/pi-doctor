@@ -40,14 +40,18 @@ Do not publish package channels until the matching GitHub release includes:
 - target-specific SHA-256 files
 - SBOM files
 - provenance attestations
-- hardware-validation results for the supported Raspberry Pi OS matrix
+- a release note stating whether hardware validation was run for the supported
+  Raspberry Pi OS matrix
 
 The manual hardware validation workflow can test exact published archives by
-passing `release_version` in `workflow_dispatch`.
+passing `release_version` in `workflow_dispatch`. It requires matching
+self-hosted Raspberry Pi runners and is not part of the hosted tag release
+workflow.
 
-The tag release workflow gates publication on native Raspberry Pi validation.
-It builds archives first, then self-hosted Pi runners download and install those
-exact workflow artifacts before attestation and GitHub Release publication.
+The tag release workflow gates publication on hosted release verification:
+formatting, Clippy, workspace tests, cargo audit, cargo deny, Debian package
+build, lintian, autopkgtest, cross-target release archives, SBOM generation, and
+provenance attestation.
 
 ## Package Channels
 

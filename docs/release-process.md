@@ -10,15 +10,16 @@
   hardware.
 - Major releases are reserved for intentionally breaking CLI or JSON behavior.
 
-The project must not declare `1.0.0` until:
+The `v1.0.0` release line freezes:
 
 - the CLI command surface is frozen for normal users
 - JSON schema v1 field meanings are stable in practice
 - finding IDs, impacts, and remediation categories have a published registry
-- release candidates have passed staged hardware validation
+- release candidates have passed the hosted CI, supply-chain, and release
+  verification gates
 
 Machine-readable removals or semantic changes require a schema bump and release
-notes, even before package `1.0.0`.
+notes.
 
 ## Release Candidates
 
@@ -28,8 +29,9 @@ Every public release should go through release candidates:
 2. Tag `vX.Y.Z-rc.1`.
 3. Build release archives, checksums, and SBOMs.
 4. Run CI, Supply Chain, Docs, and the release workflow.
-5. Run native hardware validation on supported Raspberry Pi OS images.
-6. Attest and publish only after native hardware validation passes.
+5. Run native hardware validation on supported Raspberry Pi OS images when
+   matching self-hosted runners are available.
+6. Attest and publish only after the hosted release verification gates pass.
 7. Publish notes listing known limitations and validation gaps.
 8. Repeat with `rc.2`, `rc.3`, and so on until blockers are closed.
 
@@ -44,7 +46,8 @@ Before a final release:
 - run subsystem fixtures and parser corpus tests
 - test exact release archives, not only local build outputs
 - pass native Raspberry Pi release validation for Pi 3, Pi 4, Pi 5, Zero 2 W,
-  Compute Module, camera, no-camera, and thermal fixture runners
+  Compute Module, camera, no-camera, and thermal fixture runners when matching
+  self-hosted runners are available
 - verify archive checksums, SBOMs, and provenance attestations
 - test upgrade, downgrade, rollback, and uninstall paths
 - confirm known limitations are current
@@ -57,4 +60,5 @@ For final release tags:
 2. Confirm version numbers in Cargo, Debian metadata, docs, and release scripts.
 3. Build signed artifacts and publish checksums, SBOM, and attestations.
 4. Verify GitHub release assets from a clean machine.
-5. Update package channels only after artifact verification passes.
+5. Record whether native hardware validation was run for the release.
+6. Update package channels only after artifact verification passes.
