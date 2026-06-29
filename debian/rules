@@ -25,4 +25,4 @@ override_dh_auto_install:
 	install -D -m 0755 "$$binary" debian/pi-doctor/usr/bin/pi-doctor
 
 execute_after_dh_auto_install:
-	/usr/share/cargo/bin/dh-cargo-built-using pi-doctor
+	/usr/share/cargo/bin/dh-cargo-built-using pi-doctor || true
