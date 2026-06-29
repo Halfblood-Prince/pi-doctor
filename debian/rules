@@ -6,7 +6,17 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 	dh $@ --buildsystem=cargo
 
 override_dh_auto_build:
-	cargo build --offline --package pi-doctor
+	mkdir -p debian/cargo_home
+	printf '%s\n' \
+		'[source.crates-io]' \
+		'replace-with = "debian-registry"' \
+		'[source.debian-registry]' \
+		'directory = "$(CURDIR)/debian/cargo_registry"' \
+		> debian/cargo_home/config.toml
+	CARGO_HOME="$(CURDIR)/debian/cargo_home" cargo build --offline --package pi-doctor
+
+execute_after_dh_clean:
+	rm -rf debian/cargo_home
 
 override_dh_auto_install:
 	set -eu; \
