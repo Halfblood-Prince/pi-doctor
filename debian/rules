@@ -5,6 +5,9 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 %:
 	dh $@ --buildsystem=cargo
 
+override_dh_auto_build:
+	dh_auto_build --buildsystem=cargo -- --package pi-doctor
+
 override_dh_auto_install:
 	set -eu; \
 	binary="$$(find target -type f -name pi-doctor -path '*/debug/pi-doctor' -perm /111 | head -n 1)"; \
