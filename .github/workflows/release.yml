@@ -287,5 +287,5 @@ jobs:
               cp "../pi-doctor_${RELEASE_VERSION}.dsc" "../pi-doctor_${RELEASE_VERSION}.tar.xz" /tmp/pi-doctor-sbuild/
               chown builder:builder /tmp/pi-doctor-sbuild/*
               runuser -u builder -- env HOME=/home/builder XDG_CACHE_HOME=/home/builder/.cache \
-                sbuild --chroot-mode=unshare -d unstable "/tmp/pi-doctor-sbuild/pi-doctor_${RELEASE_VERSION}.dsc"
+                sh -c "cd /tmp/pi-doctor-sbuild && sbuild --chroot-mode=unshare -d unstable pi-doctor_${RELEASE_VERSION}.dsc"
             '
