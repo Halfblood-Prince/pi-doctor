@@ -70,7 +70,7 @@ For final release tags:
    dpkg-buildpackage -S -sa
 
    lintian -i ../pi-doctor_1.0.0_source.changes
-   autopkgtest . -- null
+   autopkgtest ../pi-doctor_1.0.0.dsc -- null
    sbuild -d unstable ../pi-doctor_1.0.0.dsc
    ```
 

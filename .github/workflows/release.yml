@@ -276,7 +276,7 @@ jobs:
               dpkg-buildpackage -S -sa -us -uc
 
               lintian -i "../pi-doctor_${RELEASE_VERSION}_source.changes"
-              autopkgtest . -- null
+              autopkgtest "../pi-doctor_${RELEASE_VERSION}.dsc" -- null
               sbuild-createchroot unstable /srv/chroot/unstable-amd64-sbuild http://deb.debian.org/debian
               sbuild -d unstable "../pi-doctor_${RELEASE_VERSION}.dsc"
             '
