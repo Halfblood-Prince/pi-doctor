@@ -37,10 +37,10 @@ python3 scripts/validate-report-schema.py \
 
 ## Versioning
 
-The package follows semantic versioning, with the additional rule that `1.0.0`
-is reserved until the CLI and JSON contracts are deliberately frozen. During
-`0.x`, minor releases may still change behavior, but machine-readable breaking
-changes require a schema-version bump and migration notes.
+The package follows semantic versioning. Version `1.0.0` is the first stable
+release, and the CLI and JSON contracts are deliberately frozen for the stable
+`1.x` line. Machine-readable breaking changes require a schema-version bump and
+migration notes.
 
 ## Pull Requests
 

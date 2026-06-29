@@ -1,11 +1,11 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: pi-doctor
-Upstream-Contact: Halfblood-Prince <Halfblood-Prince@users.noreply.github.com>
+Upstream-Contact: Akhil S Kumar <chrisdetlef35@gmail.com>
 Source: https://github.com/Halfblood-Prince/pi-doctor
 
 Files: *
 Copyright:
- 2026 Halfblood-Prince
+ 2026 Akhil S Kumar
 License: Apache-2.0
 
 License: Apache-2.0

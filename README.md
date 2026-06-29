@@ -11,7 +11,7 @@ camera detection failures, and Python environment pitfalls.
 
 It is designed for both interactive troubleshooting and automation. Human
 output explains what changed and what to run next; JSON output gives scripts
-stable schemas.
+stable schemas. The current stable package release is `1.0.0`.
 
 ## Install
 
@@ -72,7 +72,7 @@ review. Until the package is accepted into Debian, build it locally:
 sudo apt install devscripts equivs build-essential lintian autopkgtest
 sudo mk-build-deps --install --remove --tool "apt-get -y" debian/control
 dpkg-buildpackage -us -uc -b
-sudo apt install ../pi-doctor_1.0.0-1_*.deb
+sudo apt install ../pi-doctor_1.0.0_*.deb
 ```
 
 Once accepted into Debian, installation will be the normal apt path:

@@ -53,6 +53,11 @@ formatting, Clippy, workspace tests, cargo audit, cargo deny, Debian package
 build, lintian, autopkgtest, cross-target release archives, SBOM generation, and
 provenance attestation.
 
+Post-release Debian validation must also run from a clean Debian unstable
+environment. Treat that external source build, lintian, autopkgtest, and sbuild
+run as a release gate rather than relying only on GitHub Actions or a local
+developer machine.
+
 ## Package Channels
 
 Debian packaging in `debian/` is maintained for mentors review. Publish to

@@ -1,7 +1,6 @@
 Source: pi-doctor
 Section: utils
-Priority: optional
-Maintainer: Halfblood-Prince <Halfblood-Prince@users.noreply.github.com>
+Maintainer: Akhil S Kumar <chrisdetlef35@gmail.com>
 Build-Depends:
  debhelper-compat (= 13),
  dh-cargo,
@@ -27,6 +26,8 @@ Testsuite: autopkgtest-pkg-rust
 Package: pi-doctor
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
+Built-Using: ${cargo:Built-Using}
+Static-Built-Using: ${cargo:Static-Built-Using}
 Description: read-only Raspberry Pi diagnostics
  pi-doctor is a command-line diagnostic tool for Raspberry Pi systems. It
  checks board identity, kernel and OS metadata, firmware throttling signals,

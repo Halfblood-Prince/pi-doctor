@@ -10,12 +10,12 @@
   hardware.
 - Major releases are reserved for intentionally breaking CLI or JSON behavior.
 
-The `v1.0.0` release line freezes:
+The stable `v1.0.0` release line freezes:
 
 - the CLI command surface is frozen for normal users
 - JSON schema v1 field meanings are stable in practice
 - finding IDs, impacts, and remediation categories have a published registry
-- release candidates have passed the hosted CI, supply-chain, and release
+- the stable release has passed the hosted CI, supply-chain, and release
   verification gates
 
 Machine-readable removals or semantic changes require a schema bump and release
@@ -58,7 +58,23 @@ For final release tags:
 
 1. Update the GitHub release notes.
 2. Confirm version numbers in Cargo, Debian metadata, docs, and release scripts.
-3. Build signed artifacts and publish checksums, SBOM, and attestations.
-4. Verify GitHub release assets from a clean machine.
-5. Record whether native hardware validation was run for the release.
-6. Update package channels only after artifact verification passes.
+3. Build and test in a clean Debian unstable environment. Do not rely only on
+   GitHub Actions or your local machine.
+
+   ```bash
+   sudo apt install devscripts build-essential lintian sbuild autopkgtest \
+     dput-ng debian-keyring
+
+   cd pi-doctor
+   uscan --force-download
+   dpkg-buildpackage -S -sa
+
+   lintian -i ../pi-doctor_1.0.0_source.changes
+   autopkgtest . -- null
+   sbuild -d unstable ../pi-doctor_1.0.0.dsc
+   ```
+
+4. Build signed artifacts and publish checksums, SBOM, and attestations.
+5. Verify GitHub release assets from a clean machine.
+6. Record whether native hardware validation was run for the release.
+7. Update package channels only after artifact verification passes.

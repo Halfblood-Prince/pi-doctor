@@ -40,13 +40,14 @@ attestation are available.
 ### Debian
 
 Debian source packaging is provided in `debian/` for mentors review. Until the
-package is accepted into Debian, build and install it locally:
+package is accepted into Debian, build and install stable release `1.0.0`
+locally:
 
 ```bash
 sudo apt install devscripts equivs build-essential lintian autopkgtest
 sudo mk-build-deps --install --remove --tool "apt-get -y" debian/control
 dpkg-buildpackage -us -uc -b
-sudo apt install ../pi-doctor_1.0.0-1_*.deb
+sudo apt install ../pi-doctor_1.0.0_*.deb
 ```
 
 ## Core Commands

@@ -237,3 +237,46 @@ jobs:
             dist/*.sbom.json
             dist/SHA256SUMS
             dist/install.sh
+
+  post-release-debian-unstable:
+    name: post-release Debian unstable
+    needs: publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Build and test in a clean Debian unstable environment
+        run: |
+          chmod +x debian/rules debian/tests/smoke scripts/*.sh
+          version="${GITHUB_REF_NAME#v}"
+          docker run --rm --privileged \
+            -e RELEASE_VERSION="$version" \
+            -v "$PWD:/src" \
+            -w /src \
+            debian:unstable-slim \
+            sh -euxc '
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                ca-certificates \
+                devscripts \
+                build-essential \
+                lintian \
+                sbuild \
+                autopkgtest \
+                dput-ng \
+                debian-keyring \
+                equivs \
+                schroot
+
+              mk-build-deps --install --remove --tool "apt-get -y --no-install-recommends" debian/control
+              uscan --force-download
+              dpkg-buildpackage -S -sa -us -uc
+
+              lintian -i "../pi-doctor_${RELEASE_VERSION}_source.changes"
+              autopkgtest . -- null
+              sbuild-createchroot unstable /srv/chroot/unstable-amd64-sbuild http://deb.debian.org/debian
+              sbuild -d unstable "../pi-doctor_${RELEASE_VERSION}.dsc"
+            '
